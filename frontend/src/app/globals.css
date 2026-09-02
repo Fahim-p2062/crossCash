@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-on-surface: #0b1c30;
+  --color-tertiary-container: #005539;
+  --color-surface-tint: #2d6197;
+  --color-on-tertiary-fixed-variant: #005236;
+  --color-on-background: #0b1c30;
+  --color-surface-variant: #d3e4fe;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface-variant: #42474f;
+  --color-on-primary: #ffffff;
+  --color-on-error-container: #93000a;
+  --color-on-tertiary-container: #3dd197;
+  --color-inverse-surface: #213145;
+  --color-tertiary-fixed: #6ffbbe;
+  --color-surface-dim: #cbdbf5;
+  --color-outline: #727780;
+  --color-secondary-container: #645efb;
+  --color-primary: #00355f;
+  --color-on-primary-fixed: #001c37;
+  --color-on-primary-container: #8ebdf9;
+  --color-on-secondary-fixed-variant: #3323cc;
+  --color-inverse-on-surface: #eaf1ff;
+  --color-surface-container-low: #eff4ff;
+  --color-surface: #f8f9ff;
+  --color-surface-bright: #f8f9ff;
+  --color-on-primary-fixed-variant: #07497d;
+  --color-surface-container-high: #dce9ff;
+  --color-on-tertiary-fixed: #002113;
+  --color-secondary-fixed: #e2dfff;
+  --color-on-secondary: #ffffff;
+  --color-surface-container: #e5eeff;
+  --color-background: #f8f9ff;
+  --color-on-error: #ffffff;
+  --color-secondary: #4b41e1;
+  --color-outline-variant: #c2c7d1;
+  --color-error-container: #ffdad6;
+  --color-on-secondary-fixed: #0f0069;
+  --color-primary-fixed-dim: #a0c9ff;
+  --color-on-secondary-container: #fffbff;
+  --color-primary-fixed: #d2e4ff;
+  --color-inverse-primary: #a0c9ff;
+  --color-secondary-fixed-dim: #c3c0ff;
+  --color-on-tertiary: #ffffff;
+  --color-error: #ba1a1a;
+  --color-tertiary: #003c27;
+  --color-surface-container-highest: #d3e4fe;
+  --color-primary-container: #0f4c81;
+  --color-tertiary-fixed-dim: #4edea3;
+  --color-surface-card: #ffffff;
+  --color-success-green: #3dd197;
+  --color-rocket-purple: #8C3494;
+  --color-bkash-pink: #d12053;
+  --color-nagad-orange: #F7931E;
+
+  --radius-DEFAULT: 0.125rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.5rem;
+  --radius-full: 0.75rem;
+
+  --spacing-gutter: 16px;
+  --spacing-base: 4px;
+  --spacing-sm: 8px;
+  --spacing-2xl: 48px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-margin-mobile: 16px;
+  --spacing-md: 16px;
+  --spacing-xs: 4px;
+  --spacing-max-width-desktop: 1200px;
+  --spacing-margin-desktop: auto;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.material-symbols-outlined[style*="font-variation-settings: 'FILL' 1"] {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Custom scrollbar for desktop tables */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f8f9ff; 
+}
+::-webkit-scrollbar-thumb {
+  background: #c2c7d1; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #727780; 
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

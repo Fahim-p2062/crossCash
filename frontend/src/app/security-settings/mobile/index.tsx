@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/session";
 import {
   getBiometricStatus,
@@ -19,7 +20,8 @@ interface SessionDevice {
 }
 
 export default function MobileSecuritySettings() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
   // Toast state
   const [toast, setToast] = useState<{
@@ -527,6 +529,21 @@ export default function MobileSecuritySettings() {
             Emergency Freeze All Wallets
           </button>
         </div>
+      </section>
+
+      {/* Section 5: Log Out of Current Account */}
+      <section className="px-margin pt-space-lg pb-space-2xl flex flex-col gap-space-sm">
+        <button
+          type="button"
+          onClick={() => {
+            logout();
+            router.push("/auth/login");
+          }}
+          className="w-full h-14 rounded-xl bg-surface-container-highest border border-error/30 text-error hover:bg-error-container/20 active:scale-[0.99] transition-all font-title-md text-title-md flex items-center justify-center gap-space-sm font-bold shadow-sm"
+        >
+          <span className="material-symbols-outlined text-[22px]">logout</span>
+          Log Out of CrossCash
+        </button>
       </section>
     </div>
   );

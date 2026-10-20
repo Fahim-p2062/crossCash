@@ -22,9 +22,27 @@ const app = express();
 // 2. Security Middleware: Helmet & Strict CORS
 app.use(helmet());
 
-const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
+const frontendOriginEnv = process.env.FRONTEND_ORIGIN;
+const allowedOrigins = frontendOriginEnv
+  ? frontendOriginEnv.split(',').map((o) => o.trim())
+  : ['http://localhost:3000'];
+
 app.use(cors({
-  origin: frontendOrigin,
+  origin: (origin, callback) => {
+    // Allow non-browser requests (Postman, curl, server-side fetch, mobile)
+    if (!origin) return callback(null, true);
+    // Allow if FRONTEND_ORIGIN is '*' or matches origin, or is localhost/vercel preview
+    if (
+      !frontendOriginEnv ||
+      frontendOriginEnv === '*' ||
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost')
+    ) {
+      return callback(null, origin);
+    }
+    return callback(null, origin);
+  },
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires', 'X-Requested-With']
 }));

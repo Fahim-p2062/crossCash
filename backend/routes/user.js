@@ -4,6 +4,60 @@ const User = require('../models/User');
 
 const Transaction = require('../models/Transaction');
 
+// GET /api/user/suggestions?q=... (Typeahead suggestions for recipient search)
+router.get('/suggestions', async (req, res, next) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (!q || q.length < 2) return res.json([]);
+    const cleanQ = q.replace(/[^0-9a-zA-Z]/g, '');
+    const users = await User.find({
+      $or: [
+        { phone: { $regex: cleanQ, $options: 'i' } },
+        { name: { $regex: q, $options: 'i' } }
+      ],
+      _id: { $ne: req.user.id }
+    }).select('name phone wallets').limit(6);
+
+    res.json(users.map(u => ({
+      id: u._id,
+      name: u.name,
+      phone: u.phone,
+      wallets: (u.wallets || []).map(w => w.provider)
+    })));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/user/lookup/:phone (Verify if a recipient exists on CrossCash)
+router.get('/lookup/:phone', async (req, res, next) => {
+  try {
+    const cleanPhone = req.params.phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length < 11) {
+      return res.status(400).json({ error: 'Phone number must be at least 11 digits' });
+    }
+
+    const foundUser = await User.findOne({ phone: cleanPhone }).select('name phone wallets');
+    if (!foundUser) {
+      return res.status(404).json({
+        exists: false,
+        message: 'User has no account on CrossCash. Transfers are only allowed between registered CrossCash users.'
+      });
+    }
+
+    res.json({
+      exists: true,
+      user: {
+        name: foundUser.name,
+        phone: foundUser.phone,
+        wallets: (foundUser.wallets || []).map(w => w.provider)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/user/:userId/balance
 router.get('/:userId/balance', async (req, res, next) => {
   try {

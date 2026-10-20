@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/session";
 import { apiRequest } from "@/lib/api";
@@ -22,11 +22,9 @@ export const PHONE_CONTACTS: Contact[] = [
   { id: "2", name: "Rakib Hasan", phone: "01912345678", provider: "Nagad", accountType: "Nagad Personal", avatarBg: "bg-[#fff3e0] text-[#e65100]" },
   { id: "3", name: "Tanvir Ahmed", phone: "01811223344", provider: "Rocket", accountType: "Rocket DBBL", avatarBg: "bg-[#f3e5f5] text-[#8C3494]" },
   { id: "4", name: "Mom (আম্মু)", phone: "01711002233", provider: "bKash", accountType: "Family Primary", avatarBg: "bg-tertiary-fixed text-on-tertiary-fixed" },
-  { id: "5", name: "Nusrat Jahan", phone: "01301987654", provider: "bKash", accountType: "bKash Personal", avatarBg: "bg-[#fce4ec] text-[#d81b60]" },
-  { id: "6", name: "Brother (ভাইয়া)", phone: "01911445566", provider: "Nagad", accountType: "Personal", avatarBg: "bg-secondary-container text-on-secondary-container" },
-  { id: "7", name: "Arif Hossain", phone: "01678554433", provider: "Rocket", accountType: "Rocket DBBL", avatarBg: "bg-[#f3e5f5] text-[#8C3494]" },
-  { id: "8", name: "Fahad Karim", phone: "01552334455", provider: "Nagad", accountType: "Nagad Personal", avatarBg: "bg-[#fff3e0] text-[#e65100]" },
-  { id: "9", name: "City Bank Savings", phone: "2051104892", provider: "Bank", accountType: "A/C •••• 4892", avatarBg: "bg-surface-container-high text-primary-container" },
+  { id: "5", name: "Sakib Islam", phone: "01512345678", provider: "Rocket", accountType: "Rocket DBBL", avatarBg: "bg-[#f3e5f5] text-[#8C3494]" },
+  { id: "6", name: "Ayon", phone: "01970399581", provider: "Nagad", accountType: "Nagad Personal", avatarBg: "bg-[#fff3e0] text-[#e65100]" },
+  { id: "7", name: "City Bank Savings", phone: "2051104892", provider: "Bank", accountType: "A/C •••• 4892", avatarBg: "bg-surface-container-high text-primary-container" },
 ];
 
 export default function MobileTransferHub() {
@@ -37,12 +35,21 @@ export default function MobileTransferHub() {
   const [sourceProvider, setSourceProvider] = useState<"bKash" | "Nagad" | "Rocket">("bKash");
   const [destinationProvider, setDestinationProvider] = useState<"bKash" | "Nagad" | "Rocket" | "Bank">("Nagad");
   
-  // Recipient state - user can enter any custom number or pick contact
-  const [recipientPhone, setRecipientPhone] = useState("01912345678");
-  const [recipientName, setRecipientName] = useState("Rakib Hasan (Nagad Personal)");
+  // Recipient state
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [recipientName, setRecipientName] = useState("");
   const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
   const [contactSearchQuery, setContactSearchQuery] = useState("");
   const [contactFilterProvider, setContactFilterProvider] = useState<string>("All");
+
+  // Dynamic Suggestion Bar State
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string; phone: string; wallets: string[] }>>([]);
+  const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
+  const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Recipient CrossCash verification state
+  // null = typing/empty, "checking" = lookup in flight, "verified" = registered, "unregistered" = not on CrossCash
+  const [verificationStatus, setVerificationStatus] = useState<"checking" | "verified" | "unregistered" | null>(null);
 
   const [amount, setAmount] = useState("2000");
   const [activeChip, setActiveChip] = useState<string>("2000");
@@ -115,37 +122,120 @@ export default function MobileTransferHub() {
     }
   };
 
-  // Recipient input & contacts handlers
+  // Perform backend CrossCash lookup when an 11-digit number is entered
+  const verifyRecipientOnCrossCash = async (phone: string) => {
+    setVerificationStatus("checking");
+    setShowSuggestionsDropdown(false);
+    try {
+      const res = await apiRequest<{
+        exists: boolean;
+        user: { name: string; phone: string; wallets: string[] };
+      }>(`/api/user/lookup/${phone}`);
+
+      if (res && res.exists && res.user) {
+        setVerificationStatus("verified");
+        setRecipientName(res.user.name);
+        // If recipient has preferred wallets, align destination tab
+        if (res.user.wallets && res.user.wallets.length > 0) {
+          const firstWallet = res.user.wallets[0] as "bKash" | "Nagad" | "Rocket";
+          if (firstWallet !== sourceProvider) {
+            setDestinationProvider(firstWallet);
+          }
+        }
+      } else {
+        setVerificationStatus("unregistered");
+        setRecipientName("");
+      }
+    } catch (err: any) {
+      setVerificationStatus("unregistered");
+      setRecipientName("");
+    }
+  };
+
+  // Live suggestions query as user types
+  const fetchSuggestions = (query: string) => {
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+
+    if (!query || query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestionsDropdown(false);
+      return;
+    }
+
+    suggestionTimeoutRef.current = setTimeout(async () => {
+      try {
+        const results = await apiRequest<Array<{ id: string; name: string; phone: string; wallets: string[] }>>(
+          `/api/user/suggestions?q=${encodeURIComponent(query)}`
+        );
+        if (results && results.length > 0) {
+          setSuggestions(results);
+          setShowSuggestionsDropdown(true);
+        } else {
+          // Check local contacts for matching suggestions as secondary
+          const localMatched = PHONE_CONTACTS.filter(
+            (c) => c.phone.includes(query) || c.name.toLowerCase().includes(query.toLowerCase())
+          ).map((c) => ({
+            id: c.id,
+            name: c.name,
+            phone: c.phone,
+            wallets: [c.provider],
+          }));
+          setSuggestions(localMatched);
+          setShowSuggestionsDropdown(localMatched.length > 0);
+        }
+      } catch (e) {
+        // Fallback local suggestions
+        const localMatched = PHONE_CONTACTS.filter(
+          (c) => c.phone.includes(query) || c.name.toLowerCase().includes(query.toLowerCase())
+        ).map((c) => ({
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+          wallets: [c.provider],
+        }));
+        setSuggestions(localMatched);
+        setShowSuggestionsDropdown(localMatched.length > 0);
+      }
+    }, 200);
+  };
+
+  // Recipient input change handler
   const handlePhoneInputChange = (rawVal: string) => {
-    const cleaned = rawVal.replace(/[^0-9]/g, "");
+    const cleaned = rawVal.replace(/[^0-9]/g, "").slice(0, 11);
     setRecipientPhone(cleaned);
 
-    const matched = PHONE_CONTACTS.find((c) => c.phone === cleaned);
-    if (matched) {
-      setRecipientName(matched.name);
-      if (matched.provider !== "Bank" && matched.provider !== sourceProvider) {
-        setDestinationProvider(matched.provider);
-      }
-    } else if (cleaned.length >= 11) {
-      setRecipientName(`New Number (${cleaned.slice(-4)})`);
-      // Auto-detect provider prefix
-      if ((cleaned.startsWith("017") || cleaned.startsWith("013")) && sourceProvider !== "bKash") {
-        setDestinationProvider("bKash");
-      } else if ((cleaned.startsWith("019") || cleaned.startsWith("014")) && sourceProvider !== "Nagad") {
-        setDestinationProvider("Nagad");
-      } else if ((cleaned.startsWith("018") || cleaned.startsWith("016") || cleaned.startsWith("015")) && sourceProvider !== "Rocket") {
-        setDestinationProvider("Rocket");
-      }
-    } else if (cleaned.length === 0) {
-      setRecipientName("");
+    if (cleaned.length === 11) {
+      // 11 digits complete: verify CrossCash account
+      verifyRecipientOnCrossCash(cleaned);
     } else {
-      setRecipientName("Custom Recipient");
+      // Less than 11 digits: reset verification and fetch suggestion bar
+      setVerificationStatus(null);
+      setRecipientName("");
+      fetchSuggestions(cleaned);
     }
   };
 
   const handleClearRecipient = () => {
     setRecipientPhone("");
     setRecipientName("");
+    setVerificationStatus(null);
+    setSuggestions([]);
+    setShowSuggestionsDropdown(false);
+  };
+
+  const handleSelectSuggestion = (s: { name: string; phone: string; wallets: string[] }) => {
+    setRecipientPhone(s.phone);
+    setRecipientName(s.name);
+    setVerificationStatus("verified");
+    setShowSuggestionsDropdown(false);
+    if (s.wallets && s.wallets.length > 0) {
+      const preferred = s.wallets[0] as "bKash" | "Nagad" | "Rocket";
+      if (preferred !== sourceProvider) {
+        setDestinationProvider(preferred);
+      }
+    }
   };
 
   const handleSelectContact = (contact: Contact) => {
@@ -157,18 +247,55 @@ export default function MobileTransferHub() {
       setDestinationProvider(contact.provider);
     }
     setIsContactsModalOpen(false);
+    setShowSuggestionsDropdown(false);
+    // Verify on CrossCash
+    verifyRecipientOnCrossCash(contact.phone);
+  };
+
+  // Native phone contacts access with fallback to in-app contact book
+  const handleOpenContacts = async () => {
+    // Check if the modern Native Web Contact Picker API is available
+    if (typeof window !== "undefined" && "contacts" in navigator && "ContactsManager" in window) {
+      try {
+        const props = ["name", "tel"];
+        const selected = await (navigator as any).contacts.select(props, { multiple: false });
+        if (selected && selected.length > 0) {
+          const contact = selected[0];
+          const rawPhone = (contact.tel && contact.tel[0]) || "";
+          const rawName = (contact.name && contact.name[0]) || "";
+          const cleaned = rawPhone.replace(/[^0-9]/g, "").slice(0, 11);
+          if (cleaned) {
+            setRecipientPhone(cleaned);
+            if (rawName) setRecipientName(rawName);
+            if (cleaned.length === 11) {
+              verifyRecipientOnCrossCash(cleaned);
+            }
+          }
+          return;
+        }
+      } catch (err: any) {
+        console.warn("Native Contact Picker dismissed or permission denied:", err);
+      }
+    }
+
+    // Fallback: Open in-app verified CrossCash directory & saved contacts
+    setIsContactsModalOpen(true);
   };
 
   const handleTransfer = () => {
+    if (verificationStatus === "unregistered") {
+      alert("Transfer Revoked: This recipient does not have a CrossCash account. Money can only be sent to registered CrossCash users.");
+      return;
+    }
     if (numericAmount <= 0) {
       alert("Please enter a transfer amount.");
       return;
     }
     if (!recipientPhone || recipientPhone.length < 11) {
-      alert("Please enter a valid 11-digit recipient phone number or select a contact.");
+      alert("Please enter a valid 11-digit recipient phone number.");
       return;
     }
-    const destName = recipientName || `Recipient (${recipientPhone.slice(-4)})`;
+    const destName = recipientName || `User ${recipientPhone.slice(-4)}`;
     const query = new URLSearchParams({
       phone: recipientPhone,
       name: destName,
@@ -180,12 +307,16 @@ export default function MobileTransferHub() {
   };
 
   const handleBiometricExpressTransfer = async () => {
+    if (verificationStatus === "unregistered") {
+      alert("Transfer Revoked: This recipient does not have a CrossCash account. Money can only be sent to registered CrossCash users.");
+      return;
+    }
     if (numericAmount <= 0) {
       alert("Please enter a transfer amount first.");
       return;
     }
     if (!recipientPhone || recipientPhone.length < 11) {
-      alert("Please enter a valid 11-digit recipient phone number or pick a contact.");
+      alert("Please enter a valid 11-digit recipient phone number.");
       return;
     }
 
@@ -248,6 +379,9 @@ export default function MobileTransferHub() {
     return matchesQuery && matchesProvider;
   });
 
+  const isTransferRevoked = verificationStatus === "unregistered";
+  const canSubmit = numericAmount > 0 && recipientPhone.length === 11 && !isTransferRevoked && verificationStatus !== "checking";
+
   return (
     <div className="flex flex-col w-full pb-8 pt-2">
       {/* Container */}
@@ -264,7 +398,7 @@ export default function MobileTransferHub() {
             Interoperable Transfer Hub
           </h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
-            Send money seamlessly across any mobile financial service or bank.
+            Send money seamlessly across verified CrossCash accounts and mobile wallets.
           </p>
         </div>
 
@@ -385,7 +519,7 @@ export default function MobileTransferHub() {
               </span>
             </div>
 
-            {/* Destination Selector Tabs (Dynamic based on source provider) */}
+            {/* Destination Selector Tabs */}
             <div className={`grid grid-cols-${destinationOptions.length} gap-space-xs p-1 bg-surface-container-low rounded-lg`} role="tablist">
               {destinationOptions.map((prov) => {
                 const isSelected = destinationProvider === prov;
@@ -427,8 +561,8 @@ export default function MobileTransferHub() {
               })}
             </div>
 
-            {/* Recipient Input Box */}
-            <div className="space-y-2">
+            {/* Recipient Input Box with Real-time Suggestions Bar */}
+            <div className="space-y-2 relative">
               <div className="flex items-center justify-between">
                 <label
                   className="font-label-md text-label-md text-on-surface-variant font-medium"
@@ -438,29 +572,46 @@ export default function MobileTransferHub() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => setIsContactsModalOpen(true)}
+                  onClick={handleOpenContacts}
                   className="text-primary text-xs font-semibold hover:underline flex items-center gap-1"
                 >
                   <span className="material-symbols-outlined text-[16px]">contacts</span>
-                  Phone Contacts ({PHONE_CONTACTS.length})
+                  Phone Contacts
                 </button>
               </div>
 
-              <div className="relative flex items-center rounded-xl bg-surface-container-low focus-within:bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary/30 transition-all px-3 h-14 border border-outline-variant/30">
+              <div className={`relative flex items-center rounded-xl bg-surface-container-low focus-within:bg-surface-container-lowest transition-all px-3 h-14 border ${
+                isTransferRevoked
+                  ? "border-error focus-within:ring-2 focus-within:ring-error/30"
+                  : verificationStatus === "verified"
+                  ? "border-tertiary focus-within:ring-2 focus-within:ring-tertiary/30"
+                  : "border-outline-variant/30 focus-within:ring-2 focus-within:ring-primary/30"
+              }`}>
                 <div className="flex items-center gap-2 text-on-surface-variant pl-1 pr-2">
-                  <span className="material-symbols-outlined text-[20px] text-primary">person_search</span>
+                  <span className={`material-symbols-outlined text-[20px] ${
+                    isTransferRevoked ? "text-error" : verificationStatus === "verified" ? "text-tertiary" : "text-primary"
+                  }`}>
+                    {isTransferRevoked ? "person_off" : verificationStatus === "verified" ? "verified" : "person_search"}
+                  </span>
                 </div>
                 <div className="flex-1 flex flex-col justify-center min-w-0">
                   <input
                     className="w-full bg-transparent font-title-md text-title-md text-on-surface font-semibold focus:outline-none placeholder:text-on-surface-variant/40"
                     id="recipient-phone"
-                    placeholder="Enter 01XXXXXXXXX or pick contact"
+                    placeholder="Enter 01XXXXXXXXX"
                     type="tel"
                     value={recipientPhone}
                     onChange={(e) => handlePhoneInputChange(e.target.value)}
+                    onFocus={() => {
+                      if (suggestions.length > 0 && recipientPhone.length < 11) {
+                        setShowSuggestionsDropdown(true);
+                      }
+                    }}
                   />
                   {recipientName && (
-                    <span className="font-body-sm text-xs text-primary font-medium truncate leading-tight">
+                    <span className={`font-body-sm text-xs font-medium truncate leading-tight ${
+                      isTransferRevoked ? "text-error" : "text-tertiary"
+                    }`}>
                       {recipientName}
                     </span>
                   )}
@@ -483,42 +634,84 @@ export default function MobileTransferHub() {
                   aria-label="Open Contacts Picker"
                   className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary hover:bg-primary-container/20 active:scale-95 transition-all shrink-0"
                   type="button"
-                  onClick={() => setIsContactsModalOpen(true)}
+                  onClick={handleOpenContacts}
                   title="Choose from Contacts"
                 >
                   <span className="material-symbols-outlined text-[20px]">contacts</span>
                 </button>
               </div>
 
-              {/* Quick Contact Chips (bKash style) */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
-                <button
-                  type="button"
-                  onClick={() => setIsContactsModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-container text-white text-xs font-bold shrink-0 shadow-xs hover:opacity-90 active:scale-95 transition-all"
-                >
-                  <span className="material-symbols-outlined text-[15px]">add</span>
-                  All Contacts
-                </button>
-                {PHONE_CONTACTS.slice(0, 4).map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => handleSelectContact(c)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 border transition-all ${
-                      recipientPhone === c.phone
-                        ? "bg-secondary-container text-on-secondary-container border-primary font-bold shadow-xs"
-                        : "bg-surface-container-low text-on-surface border-outline-variant/30 hover:bg-surface-container"
-                    }`}
-                  >
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${c.avatarBg}`}>
-                      {c.name.charAt(0)}
-                    </span>
-                    <span>{c.name.split(" ")[0]}</span>
-                    <span className="text-[10px] text-outline">({c.provider})</span>
-                  </button>
-                ))}
-              </div>
+              {/* Dynamic Suggestions Bar Dropdown */}
+              {showSuggestionsDropdown && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/40 shadow-xl overflow-hidden divide-y divide-outline-variant/20 animate-fadeIn">
+                  <div className="px-3 py-1.5 bg-surface-container-low text-[11px] font-bold text-outline uppercase tracking-wider flex items-center justify-between">
+                    <span>Suggested CrossCash Users</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowSuggestionsDropdown(false)}
+                      className="text-xs hover:text-on-surface"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.id || s.phone}
+                      type="button"
+                      onClick={() => handleSelectSuggestion(s)}
+                      className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-surface-container transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-primary-container/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                          {s.name.charAt(0)}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-title-md text-sm font-semibold text-on-surface truncate">
+                            {s.name}
+                          </span>
+                          <span className="font-body-sm text-xs text-on-surface-variant font-mono">
+                            {s.phone}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-tertiary">
+                        <span className="material-symbols-outlined text-[13px]">verified</span>
+                        CrossCash
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Verification & Revoke Status Alerts */}
+              {verificationStatus === "checking" && (
+                <div className="flex items-center gap-1.5 py-1 px-1 text-xs text-on-surface-variant font-medium animate-pulse">
+                  <span className="material-symbols-outlined text-[15px] animate-spin text-primary">sync</span>
+                  Checking CrossCash directory for {recipientPhone}...
+                </div>
+              )}
+
+              {verificationStatus === "verified" && (
+                <div className="flex items-center gap-2 py-2 px-3 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed text-xs font-semibold shadow-xs animate-fadeIn">
+                  <span className="material-symbols-outlined text-[18px]">verified_user</span>
+                  <div className="flex flex-col">
+                    <span className="font-bold">{recipientName}</span>
+                    <span className="text-[11px] font-normal opacity-90">Verified CrossCash Citizen • Direct Rail Transfer Ready</span>
+                  </div>
+                </div>
+              )}
+
+              {isTransferRevoked && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-error-container text-on-error-container text-xs border border-error/30 shadow-xs animate-shake">
+                  <span className="material-symbols-outlined text-[20px] text-error shrink-0 mt-0.5">block</span>
+                  <div className="flex flex-col flex-1">
+                    <span className="font-bold text-error text-sm">User has no account on CrossCash</span>
+                    <p className="mt-0.5 text-on-error-container/90 leading-relaxed">
+                      Transfers are revoked. To prevent lost funds, CrossCash only allows sending money to registered users.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -630,23 +823,40 @@ export default function MobileTransferHub() {
           <div className="flex items-center gap-space-sm">
             <button
               onClick={handleTransfer}
-              disabled={numericAmount <= 0}
-              className="flex-1 h-14 bg-primary-container text-on-primary rounded-xl font-title-md text-title-md font-semibold shadow-md hover:bg-primary transition-all flex items-center justify-center gap-space-sm active:scale-[0.99] disabled:opacity-50"
+              disabled={!canSubmit}
+              className={`flex-1 h-14 rounded-xl font-title-md text-title-md font-semibold shadow-md transition-all flex items-center justify-center gap-space-sm active:scale-[0.99] disabled:opacity-50 ${
+                isTransferRevoked
+                  ? "bg-error-container text-error cursor-not-allowed border border-error/40"
+                  : "bg-primary-container text-on-primary hover:bg-primary"
+              }`}
               id="cta-transfer-button"
               type="button"
             >
-              <span id="cta-text">
-                Review & Transfer ৳{total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-              </span>
-              <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+              {isTransferRevoked ? (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">block</span>
+                  <span>Recipient Not on CrossCash</span>
+                </>
+              ) : (
+                <>
+                  <span id="cta-text">
+                    Review & Transfer ৳{total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </span>
+                  <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                </>
+              )}
             </button>
             <button
               aria-label="Biometric Express Transfer"
               onClick={handleBiometricExpressTransfer}
-              disabled={numericAmount <= 0 || isBiometricTransferring}
-              className="w-14 h-14 rounded-xl bg-surface-container-highest text-primary-container flex items-center justify-center hover:bg-surface-container-high transition-colors shrink-0 shadow-sm disabled:opacity-50"
+              disabled={!canSubmit || isBiometricTransferring}
+              className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors shrink-0 shadow-sm disabled:opacity-50 ${
+                isTransferRevoked
+                  ? "bg-surface-container text-outline cursor-not-allowed"
+                  : "bg-surface-container-highest text-primary-container hover:bg-surface-container-high"
+              }`}
               type="button"
-              title="Express Biometric Transfer"
+              title={isTransferRevoked ? "Transfer Revoked: Recipient not on CrossCash" : "Express Biometric Transfer"}
             >
               {isBiometricTransferring ? (
                 <div className="w-5 h-5 border-2 border-primary-container border-t-transparent rounded-full animate-spin"></div>
@@ -657,7 +867,11 @@ export default function MobileTransferHub() {
           </div>
           <div className="flex items-center justify-center gap-space-xs text-on-surface-variant">
             <span className="material-symbols-outlined text-[16px] text-tertiary-container">shield</span>
-            <span className="font-body-sm text-body-sm">256-bit encrypted inter-rail handshake</span>
+            <span className="font-body-sm text-body-sm">
+              {isTransferRevoked
+                ? "Revoked protection active: payments to non-CrossCash users blocked"
+                : "256-bit encrypted inter-rail handshake"}
+            </span>
           </div>
         </div>
       </div>
@@ -674,7 +888,7 @@ export default function MobileTransferHub() {
                 </div>
                 <div>
                   <h3 className="font-headline-md text-headline-md font-bold text-on-surface">Select Recipient</h3>
-                  <p className="font-body-sm text-xs text-on-surface-variant">Choose from saved contacts or enter custom number</p>
+                  <p className="font-body-sm text-xs text-on-surface-variant">Choose from verified directory or enter custom number</p>
                 </div>
               </div>
               <button
@@ -745,10 +959,10 @@ export default function MobileTransferHub() {
                   </div>
                   <div className="flex flex-col flex-1 min-w-0">
                     <span className="font-title-md text-title-md font-bold text-primary truncate">
-                      Send to "{contactSearchQuery}"
+                      Verify & Send to "{contactSearchQuery}"
                     </span>
                     <span className="font-body-sm text-xs text-on-surface-variant">
-                      Tap to send money to this custom number
+                      Tap to check if this number has a CrossCash account
                     </span>
                   </div>
                   <span className="material-symbols-outlined text-primary text-[20px]">arrow_forward</span>

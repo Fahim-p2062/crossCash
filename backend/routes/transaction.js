@@ -50,25 +50,25 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
       ? sender
       : await User.findOne({ phone: recipientPhone });
 
-    let resolvedRecipientName = recipientName;
-
-    if (recipient) {
-      resolvedRecipientName = recipient.name;
-      let recipientWallet = recipient.wallets.find(w => w.provider === toWalletProvider);
-      if (!recipientWallet) {
-        recipient.wallets.push({
-          provider: toWalletProvider,
-          identifier: recipientPhone,
-          balance: amount
-        });
-      } else {
-        recipientWallet.balance = Math.round((recipientWallet.balance + amount) * 100) / 100;
-      }
-      recipient.markModified('wallets');
-      await recipient.save();
-    } else if (!resolvedRecipientName) {
-      resolvedRecipientName = `MFS User (***${recipientPhone.slice(-4)})`;
+    if (!recipient) {
+      return res.status(400).json({
+        error: `User ${recipientPhone} has no account on CrossCash. Transfers are revoked for unregistered users.`
+      });
     }
+
+    const resolvedRecipientName = recipient.name;
+    let recipientWallet = recipient.wallets.find(w => w.provider === toWalletProvider);
+    if (!recipientWallet) {
+      recipient.wallets.push({
+        provider: toWalletProvider,
+        identifier: recipientPhone,
+        balance: amount
+      });
+    } else {
+      recipientWallet.balance = Math.round((recipientWallet.balance + amount) * 100) / 100;
+    }
+    recipient.markModified('wallets');
+    await recipient.save();
 
     // Save transaction ledger in MongoDB
     const transaction = new Transaction({

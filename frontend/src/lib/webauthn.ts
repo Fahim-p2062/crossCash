@@ -84,20 +84,22 @@ export async function registerBiometricDevice(): Promise<{ verified: boolean; me
 }
 
 /**
- * Authenticate and log in using physical biometrics (no PIN needed).
+ * Authenticate and log in using physical biometrics (true 1-tap passwordless login).
  */
-export async function loginWithBiometrics(phone: string): Promise<{ token: string; user: User }> {
-  if (!phone || phone.trim() === '') {
-    throw new Error('Please enter your phone number to use biometric login.');
+export async function loginWithBiometrics(phone?: string): Promise<{ token: string; user: User }> {
+  // If phone is not explicitly passed, check if remembered from a previous login
+  let resolvedPhone = phone && phone.trim() !== '' ? phone.trim() : undefined;
+  if (!resolvedPhone && typeof window !== 'undefined') {
+    resolvedPhone = localStorage.getItem('crosscash_last_phone') || undefined;
   }
 
-  // 1. Get authentication challenge for this phone number
-  const data = await apiRequest<{ options: any; phone: string }>(
+  // 1. Request authentication challenge (discoverable if phone is not provided)
+  const data = await apiRequest<{ options: any; challenge: string; phone?: string }>(
     '/api/auth/biometric/login-challenge',
     {
       method: 'POST',
       skipAuth: true,
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify({ phone: resolvedPhone }),
     }
   );
 
@@ -119,14 +121,18 @@ export async function loginWithBiometrics(phone: string): Promise<{ token: strin
       method: 'POST',
       skipAuth: true,
       body: JSON.stringify({
-        phone: data.phone,
+        phone: resolvedPhone || data.phone,
         response: asseResp,
+        challenge: data.challenge,
       }),
     }
   );
 
-  // Save session to localStorage
+  // Save session to localStorage & remember phone
   setSession(result.token, result.user);
+  if (typeof window !== 'undefined' && result.user?.phone) {
+    localStorage.setItem('crosscash_last_phone', result.user.phone);
+  }
 
   return result;
 }

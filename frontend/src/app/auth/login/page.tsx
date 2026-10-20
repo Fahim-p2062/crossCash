@@ -25,23 +25,26 @@ export default function Login() {
     checkBiometricSupport().then((support) => {
       setBiometricSupported(support.supported);
     });
+    if (typeof window !== "undefined") {
+      const savedPhone = localStorage.getItem("crosscash_last_phone");
+      if (savedPhone) {
+        setPhone(savedPhone);
+      }
+    }
   }, []);
 
   const handleBiometricLogin = async () => {
-    if (!phone || phone.trim().length < 10) {
-      setGeneralError("Please enter your Phone Number first to authenticate with biometrics.");
-      return;
-    }
     setGeneralError(null);
     setLockedError(null);
     setIsBiometricLoading(true);
 
     try {
-      const data = await loginWithBiometrics(phone.trim());
+      // 1-Tap authentication: no phone required!
+      const data = await loginWithBiometrics(phone ? phone.trim() : undefined);
       login(data.token, data.user);
       router.push("/");
     } catch (err: any) {
-      setGeneralError(err.message || "Biometric login failed. Please verify sensor or use PIN.");
+      setGeneralError(err.message || "Biometric login failed. Touch sensor again or use PIN.");
     } finally {
       setIsBiometricLoading(false);
     }
@@ -204,7 +207,7 @@ export default function Login() {
                 ) : (
                   <span className="material-symbols-outlined text-[22px] text-primary">fingerprint</span>
                 )}
-                <span>{isBiometricLoading ? "Scanning Biometrics..." : "Sign in with Fingerprint / Face ID"}</span>
+                <span>{isBiometricLoading ? "Touch your fingerprint sensor..." : "1-Tap Fingerprint / Face ID"}</span>
               </button>
             </div>
           )}

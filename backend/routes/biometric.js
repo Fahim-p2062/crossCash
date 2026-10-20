@@ -44,6 +44,28 @@ function getWebAuthnContext(req) {
   }
 }
 
+// Active challenges cache (challenge -> { phone, createdAt })
+const activeChallenges = new Map();
+
+function saveChallenge(challenge, phone = null) {
+  activeChallenges.set(challenge, { phone, createdAt: Date.now() });
+  const expiry = Date.now() - 5 * 60 * 1000;
+  for (const [key, value] of activeChallenges.entries()) {
+    if (value.createdAt < expiry) {
+      activeChallenges.delete(key);
+    }
+  }
+}
+
+function consumeChallenge(challenge) {
+  if (activeChallenges.has(challenge)) {
+    const data = activeChallenges.get(challenge);
+    activeChallenges.delete(challenge);
+    return data;
+  }
+  return null;
+}
+
 // 1. GET /api/auth/biometric/status (Protected: check if user has biometrics enabled)
 router.get('/status', verifyToken, async (req, res, next) => {
   try {
@@ -88,14 +110,16 @@ router.post('/register-challenge', verifyToken, async (req, res, next) => {
       attestationType: 'none',
       excludeCredentials,
       authenticatorSelection: {
-        authenticatorAttachment: 'platform', // Enforce on-device biometric (TouchID, FaceID, Windows Hello, Android)
-        userVerification: 'required',        // Must verify user with biometrics/PIN
-        residentKey: 'preferred',
+        authenticatorAttachment: 'platform',
+        userVerification: 'required',
+        residentKey: 'required', // creates a Discoverable Credential / Passkey
+        requireResidentKey: true,
       },
     });
 
     user.currentChallenge = options.challenge;
     await user.save();
+    saveChallenge(options.challenge, user.phone);
 
     res.json(options);
   } catch (error) {
@@ -174,68 +198,87 @@ router.post('/register-verify', verifyToken, async (req, res, next) => {
   }
 });
 
-// 4. POST /api/auth/biometric/login-challenge (Public: generate authentication options)
+// 4. POST /api/auth/biometric/login-challenge (Public: 1-Tap or targeted authentication)
 router.post('/login-challenge', async (req, res, next) => {
   try {
-    const { phone } = req.body;
-    if (!phone) {
-      return res.status(400).json({ error: 'Phone number is required for biometric sign-in.' });
-    }
+    const { phone } = req.body || {};
+    let allowCredentials = undefined;
+    let targetUser = null;
 
-    const user = await User.findOne({ phone });
-    if (!user) {
-      return res.status(404).json({ error: 'No account registered with this phone number.' });
-    }
-
-    if (!user.biometricCredentials || user.biometricCredentials.length === 0) {
-      return res.status(400).json({
-        error: 'Biometric unlock is not registered on this account yet. Please log in with PIN and enable it in Security Settings.'
-      });
+    if (phone && typeof phone === 'string' && phone.trim()) {
+      targetUser = await User.findOne({ phone: phone.trim() });
+      if (targetUser && targetUser.biometricCredentials && targetUser.biometricCredentials.length > 0) {
+        allowCredentials = targetUser.biometricCredentials.map(cred => ({
+          id: cred.credentialID,
+          transports: cred.transports,
+        }));
+      }
     }
 
     const { rpID } = getWebAuthnContext(req);
 
-    const allowCredentials = user.biometricCredentials.map(cred => ({
-      id: cred.credentialID,
-      transports: cred.transports,
-    }));
-
     const options = await generateAuthenticationOptions({
       rpID,
-      allowCredentials,
+      allowCredentials, // undefined allows 1-tap discoverable credentials (no phone needed!)
       userVerification: 'required',
     });
 
-    user.currentChallenge = options.challenge;
-    await user.save();
+    saveChallenge(options.challenge, targetUser?.phone || null);
+    if (targetUser) {
+      targetUser.currentChallenge = options.challenge;
+      await targetUser.save();
+    }
 
-    res.json({ options, phone: user.phone });
+    res.json({ options, challenge: options.challenge, phone: targetUser?.phone || null });
   } catch (error) {
     next(error);
   }
 });
 
-// 5. POST /api/auth/biometric/login-verify (Public: verify biometric signature and issue JWT)
+// 5. POST /api/auth/biometric/login-verify (Public: verify 1-tap or targeted biometric login)
 router.post('/login-verify', async (req, res, next) => {
   try {
-    const { phone, response } = req.body;
-    if (!phone || !response) {
-      return res.status(400).json({ error: 'Phone number and biometric response are required.' });
+    const { phone, response, challenge } = req.body;
+    if (!response || !response.id) {
+      return res.status(400).json({ error: 'Biometric response is missing or invalid.' });
     }
 
-    const user = await User.findOne({ phone });
+    // 1. Locate user: either by phone or directly by the hardware credential ID
+    let user = null;
+    if (phone && typeof phone === 'string' && phone.trim()) {
+      user = await User.findOne({ phone: phone.trim() });
+    }
+    
     if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
+      user = await User.findOne({ "biometricCredentials.credentialID": response.id });
     }
 
-    if (!user.currentChallenge) {
-      return res.status(400).json({ error: 'No active login challenge found. Please retry.' });
+    if (!user) {
+      return res.status(404).json({
+        error: 'No CrossCash account found for this biometric sensor. Please log in with PIN and enable Biometrics in Settings.'
+      });
     }
 
-    // Find the matching credential by credentialID
+    // 2. Resolve expected challenge
+    let expectedChallenge = user.currentChallenge;
+    if (!expectedChallenge && challenge && activeChallenges.has(challenge)) {
+      expectedChallenge = challenge;
+    }
+    if (!expectedChallenge && activeChallenges.size > 0) {
+      for (const [chKey] of activeChallenges.entries()) {
+        expectedChallenge = chKey;
+        break;
+      }
+    }
+
+    if (!expectedChallenge) {
+      return res.status(400).json({ error: 'No active login challenge found. Please try again.' });
+    }
+
+    // 3. Find matching hardware credential
     const dbCred = (user.biometricCredentials || []).find(c => c.credentialID === response.id);
     if (!dbCred) {
-      return res.status(400).json({ error: 'Unrecognized biometric credential for this account.' });
+      return res.status(400).json({ error: 'Biometric credential is not recognized for this account.' });
     }
 
     const { rpID, origin } = getWebAuthnContext(req);
@@ -244,7 +287,7 @@ router.post('/login-verify', async (req, res, next) => {
     try {
       verification = await verifyAuthenticationResponse({
         response,
-        expectedChallenge: user.currentChallenge,
+        expectedChallenge,
         expectedOrigin: origin,
         expectedRPID: rpID,
         credential: {
@@ -255,7 +298,7 @@ router.post('/login-verify', async (req, res, next) => {
         },
       });
     } catch (verifyError) {
-      console.error('[WebAuthn Login Error]:', verifyError.message);
+      console.error('[WebAuthn 1-Tap Login Error]:', verifyError.message);
       return res.status(400).json({ error: verifyError.message || 'Biometric authentication failed.' });
     }
 
@@ -263,12 +306,13 @@ router.post('/login-verify', async (req, res, next) => {
       return res.status(400).json({ error: 'Biometric signature could not be verified.' });
     }
 
-    // Update credential counter
+    // Clean up challenges & update counter
+    consumeChallenge(expectedChallenge);
     dbCred.counter = verification.authenticationInfo.newCounter;
     user.currentChallenge = null;
     await user.save();
 
-    // Issue JWT token
+    // 4. Issue JWT token
     const token = jwt.sign(
       { sub: user._id.toString() },
       process.env.JWT_SECRET,

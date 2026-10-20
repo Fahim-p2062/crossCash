@@ -44,7 +44,6 @@ export default function Sidebar() {
               Live
             </span>
           </div>
-          <span className="font-label-sm text-label-sm text-on-surface-variant font-medium">Interoperable Portal</span>
         </div>
       </Link>
 

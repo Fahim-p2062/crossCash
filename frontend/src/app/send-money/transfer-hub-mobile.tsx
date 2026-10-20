@@ -53,7 +53,6 @@ export default function MobileTransferHub() {
 
   const [amount, setAmount] = useState("2000");
   const [activeChip, setActiveChip] = useState<string>("2000");
-  const [isFlipped, setIsFlipped] = useState(false);
   const [showSourcePicker, setShowSourcePicker] = useState(false);
   const [isBiometricTransferring, setIsBiometricTransferring] = useState(false);
 
@@ -110,16 +109,6 @@ export default function MobileTransferHub() {
     const cleaned = val.replace(/[^0-9]/g, "");
     setAmount(cleaned);
     setActiveChip("");
-  };
-
-  const handleSwitchRails = () => {
-    setIsFlipped(!isFlipped);
-    if (destinationProvider !== "Bank") {
-      const oldSource = sourceProvider;
-      const oldDest = destinationProvider;
-      setSourceProvider(oldDest as "bKash" | "Nagad" | "Rocket");
-      setDestinationProvider(oldSource as any);
-    }
   };
 
   // Perform backend CrossCash lookup when an 11-digit number is entered
@@ -386,22 +375,6 @@ export default function MobileTransferHub() {
     <div className="flex flex-col w-full pb-8 pt-2">
       {/* Container */}
       <div className="relative w-full px-margin md:px-0 pt-space-sm space-y-space-md">
-        {/* Context Banner */}
-        <div className="flex flex-col space-y-space-2xs">
-          <div className="inline-flex items-center gap-space-xs self-start px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-fixed-variant">
-            <span className="material-symbols-outlined text-[14px]">sync_alt</span>
-            <span className="font-label-md text-label-md tracking-wider uppercase font-semibold">
-              Unified Payment Rail
-            </span>
-          </div>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold">
-            Interoperable Transfer Hub
-          </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant">
-            Send money seamlessly across verified CrossCash accounts and mobile wallets.
-          </p>
-        </div>
-
         {/* Unified Payment Card */}
         <div className="flex flex-col space-y-space-md">
           {/* Source Wallet Card */}
@@ -489,33 +462,11 @@ export default function MobileTransferHub() {
             )}
           </div>
 
-          {/* Central Interoperability Switch Button */}
-          <div className="relative flex justify-center -my-3 z-10">
-            <button
-              aria-label="Switch transfer direction"
-              onClick={handleSwitchRails}
-              className="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-primary-container text-on-primary shadow-md active:scale-95 transition-transform border-2 border-surface-container-lowest"
-              id="interop-switch-btn"
-              type="button"
-            >
-              <div className={`transition-transform duration-300 ${isFlipped ? "rotate-180" : ""}`}>
-                <span className="material-symbols-outlined text-[18px]">swap_vert</span>
-              </div>
-              <span className="font-label-md text-label-md font-semibold tracking-wide text-surface-container-lowest">
-                Instant Interoperability Switch
-              </span>
-              <span className="inline-flex w-2 h-2 rounded-full bg-tertiary-fixed animate-ping"></span>
-            </button>
-          </div>
-
           {/* Destination Wallet Card */}
           <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
             <div className="flex items-center justify-between">
               <span className="font-label-md text-label-md uppercase tracking-wider font-semibold text-on-surface-variant">
                 To (Destination)
-              </span>
-              <span className="font-body-sm text-body-sm text-primary font-medium flex items-center gap-0.5">
-                <span className="material-symbols-outlined text-[14px]">bolt</span> NPSB Direct Rail
               </span>
             </div>
 
@@ -800,20 +751,10 @@ export default function MobileTransferHub() {
                 <span className="font-label-md text-label-md uppercase tracking-wider font-semibold text-on-surface-variant block">
                   Total Deducted from {sourceProvider}
                 </span>
-                <span className="text-[11px] text-outline">Includes regulatory interoperability surcharge</span>
               </div>
               <span className="font-headline-md text-headline-md text-primary font-bold font-mono">
                 ৳{total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
-            </div>
-
-            {/* Compliance & Security Badge */}
-            <div className="mt-space-sm p-space-sm rounded-lg bg-surface-container flex items-center gap-space-sm text-on-surface">
-              <span className="material-symbols-outlined text-tertiary text-[20px] shrink-0">lock</span>
-              <p className="font-body-sm text-body-sm leading-tight text-on-surface-variant">
-                <strong className="text-on-surface font-medium">Instant Settlement:</strong> Fully backed by Bangladesh
-                Bank National Payment Switch (NPSB) guidelines.
-              </p>
             </div>
           </div>
         </div>
@@ -864,14 +805,6 @@ export default function MobileTransferHub() {
                 <span className="material-symbols-outlined text-[28px]">fingerprint</span>
               )}
             </button>
-          </div>
-          <div className="flex items-center justify-center gap-space-xs text-on-surface-variant">
-            <span className="material-symbols-outlined text-[16px] text-tertiary-container">shield</span>
-            <span className="font-body-sm text-body-sm">
-              {isTransferRevoked
-                ? "Revoked protection active: payments to non-CrossCash users blocked"
-                : "256-bit encrypted inter-rail handshake"}
-            </span>
           </div>
         </div>
       </div>

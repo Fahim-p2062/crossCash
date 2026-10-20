@@ -2,14 +2,19 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { hasSession } from "@/lib/session";
 
 export default function Splash() {
   const router = useRouter();
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.push("/auth/login");
-    }, 2500);
+      if (hasSession()) {
+        router.replace("/");
+      } else {
+        router.replace("/auth/login");
+      }
+    }, 2000);
     return () => clearTimeout(timer);
   }, [router]);
 

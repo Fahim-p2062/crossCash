@@ -1,0 +1,22 @@
+{
+  "name": "crosscash",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CrossCash - Interoperable MFS Transfer Hub",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend start",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "lint": "npm --prefix frontend run lint"
+  },
+  "keywords": [
+    "fintech",
+    "interoperability",
+    "mfs",
+    "nextjs",
+    "express"
+  ],
+  "author": "Fahim Bin Zaman",
+  "license": "ISC"
+}

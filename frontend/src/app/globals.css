@@ -1,63 +1,81 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-on-surface: #0b1c30;
-  --color-tertiary-container: #005539;
-  --color-surface-tint: #2d6197;
-  --color-on-tertiary-fixed-variant: #005236;
-  --color-on-background: #0b1c30;
-  --color-surface-variant: #d3e4fe;
-  --color-surface-container-lowest: #ffffff;
-  --color-on-surface-variant: #42474f;
+  --color-primary: #2a14b4;
+  --color-primary-container: #4338ca;
+  --color-primary-fixed: #e3dfff;
+  --color-primary-fixed-dim: #c3c0ff;
   --color-on-primary: #ffffff;
-  --color-on-error-container: #93000a;
-  --color-on-tertiary-container: #3dd197;
-  --color-inverse-surface: #213145;
+  --color-on-primary-container: #c1beff;
+  --color-on-primary-fixed: #100069;
+  --color-on-primary-fixed-variant: #372abf;
+
+  --color-secondary: #565e74;
+  --color-secondary-container: #dae2fd;
+  --color-secondary-fixed: #dae2fd;
+  --color-secondary-fixed-dim: #bec6e0;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #5c647a;
+  --color-on-secondary-fixed: #131b2e;
+  --color-on-secondary-fixed-variant: #3f465c;
+
+  --color-tertiary: #00442d;
+  --color-tertiary-container: #005e3f;
   --color-tertiary-fixed: #6ffbbe;
-  --color-surface-dim: #cbdbf5;
-  --color-outline: #727780;
-  --color-secondary-container: #645efb;
-  --color-primary: #00355f;
-  --color-on-primary-fixed: #001c37;
-  --color-on-primary-container: #8ebdf9;
-  --color-on-secondary-fixed-variant: #3323cc;
-  --color-inverse-on-surface: #eaf1ff;
-  --color-surface-container-low: #eff4ff;
+  --color-tertiary-fixed-dim: #4edea3;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #4ddda2;
+  --color-on-tertiary-fixed: #002113;
+  --color-on-tertiary-fixed-variant: #005236;
+
   --color-surface: #f8f9ff;
   --color-surface-bright: #f8f9ff;
-  --color-on-primary-fixed-variant: #07497d;
-  --color-surface-container-high: #dce9ff;
-  --color-on-tertiary-fixed: #002113;
-  --color-secondary-fixed: #e2dfff;
-  --color-on-secondary: #ffffff;
+  --color-surface-dim: #cbdbf5;
   --color-surface-container: #e5eeff;
-  --color-background: #f8f9ff;
-  --color-on-error: #ffffff;
-  --color-secondary: #4b41e1;
-  --color-outline-variant: #c2c7d1;
-  --color-error-container: #ffdad6;
-  --color-on-secondary-fixed: #0f0069;
-  --color-primary-fixed-dim: #a0c9ff;
-  --color-on-secondary-container: #fffbff;
-  --color-primary-fixed: #d2e4ff;
-  --color-inverse-primary: #a0c9ff;
-  --color-secondary-fixed-dim: #c3c0ff;
-  --color-on-tertiary: #ffffff;
-  --color-error: #ba1a1a;
-  --color-tertiary: #003c27;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container-high: #dce9ff;
   --color-surface-container-highest: #d3e4fe;
-  --color-primary-container: #0f4c81;
-  --color-tertiary-fixed-dim: #4edea3;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-tint: #5148d7;
+  --color-surface-variant: #d3e4fe;
+
+  --color-on-surface: #0b1c30;
+  --color-on-surface-variant: #464554;
+  --color-background: #f8f9ff;
+  --color-on-background: #0b1c30;
+  --color-inverse-surface: #213145;
+  --color-inverse-on-surface: #eaf1ff;
+  --color-inverse-primary: #c3c0ff;
+
+  --color-outline: #777586;
+  --color-outline-variant: #c7c4d7;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
   --color-surface-card: #ffffff;
   --color-success-green: #3dd197;
   --color-rocket-purple: #8C3494;
-  --color-bkash-pink: #d12053;
-  --color-nagad-orange: #F7931E;
+  --color-bkash-pink: #E2136E;
+  --color-nagad-orange: #F7941D;
 
-  --radius-DEFAULT: 0.125rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.5rem;
-  --radius-full: 0.75rem;
+  --radius-DEFAULT: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  --spacing-space-2xs: 0.125rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2rem;
+  --spacing-space-2xl: 3rem;
+  --spacing-margin: 1rem;
+  --spacing-margin-tablet: 1.5rem;
+  --spacing-gutter: 1rem;
+  --spacing-gutter-sm: 0.75rem;
 
   --spacing-gutter: 16px;
   --spacing-base: 4px;
@@ -70,6 +88,58 @@
   --spacing-xs: 4px;
   --spacing-max-width-desktop: 1200px;
   --spacing-margin-desktop: auto;
+
+  --text-currency-display: 36px;
+  --text-currency-display--line-height: 44px;
+  --text-currency-display--letter-spacing: -0.03em;
+  --text-currency-display--font-weight: 700;
+
+  --text-display-lg: 32px;
+  --text-display-lg--line-height: 40px;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 700;
+
+  --text-headline-lg: 24px;
+  --text-headline-lg--line-height: 32px;
+  --text-headline-lg--letter-spacing: -0.015em;
+  --text-headline-lg--font-weight: 600;
+
+  --text-headline-md: 20px;
+  --text-headline-md--line-height: 28px;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 600;
+
+  --text-title-md: 16px;
+  --text-title-md--line-height: 24px;
+  --text-title-md--letter-spacing: -0.005em;
+  --text-title-md--font-weight: 600;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-lg--letter-spacing: 0em;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-md--letter-spacing: 0em;
+  --text-body-md--font-weight: 400;
+
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 16px;
+  --text-body-sm--letter-spacing: 0.01em;
+  --text-body-sm--font-weight: 400;
+
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--letter-spacing: 0.04em;
+  --text-label-md--font-weight: 600;
+
+  --container-xs: 20rem;
+  --container-sm: 24rem;
+  --container-md: 28rem;
+  --container-lg: 32rem;
+  --container-xl: 36rem;
+  --container-2xl: 42rem;
 }
 
 body {
@@ -108,4 +178,37 @@ body {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Fix Tailwind v4 container sizing conflict with custom spacing tokens */
+.max-w-xs {
+  max-width: 20rem !important;
+}
+.max-w-sm {
+  max-width: 24rem !important;
+}
+.max-w-md {
+  max-width: 28rem !important;
+}
+.max-w-lg {
+  max-width: 32rem !important;
+}
+.max-w-xl {
+  max-width: 36rem !important;
+}
+.max-w-2xl {
+  max-width: 42rem !important;
 }

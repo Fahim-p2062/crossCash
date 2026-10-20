@@ -21,14 +21,25 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+    trim: true,
   },
   name: {
     type: String,
     required: true,
+    trim: true,
   },
   pin: {
-    type: String, // Hashed PIN in real app, plain for demo if needed, but best practice is hash
+    type: String,
     required: true,
+    select: false, // Never return PIN by default in queries
+  },
+  failedPinAttempts: {
+    type: Number,
+    default: 0,
+  },
+  lockUntil: {
+    type: Date,
+    default: null,
   },
   wallets: [walletSchema],
 }, { timestamps: true });

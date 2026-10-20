@@ -1,6 +1,9 @@
 "use client";
 
+import { useAuth } from "@/lib/session";
+
 export default function DesktopSecuritySettings() {
+  const { logout } = useAuth();
   return (
     <div className="flex flex-col w-full relative h-full">
       {/* Header / Top Context */}
@@ -143,8 +146,18 @@ export default function DesktopSecuritySettings() {
                   <span className="text-label-sm font-label-sm text-on-surface-variant mt-xs">Dhaka, Bangladesh • IP: 203.202.xxx.xx</span>
                   <span className="text-label-sm font-label-sm text-outline mt-xs">Oct 12, 09:15</span>
                 </div>
-                <button className="absolute top-md right-md opacity-0 group-hover:opacity-100 transition-opacity text-error hover:text-error/80" title="Revoke Access">
+                <button onClick={logout} className="absolute top-md right-md opacity-0 group-hover:opacity-100 transition-opacity text-error hover:text-error/80" title="Revoke Access">
                   <span className="material-symbols-outlined text-[18px]">logout</span>
+                </button>
+              </div>
+
+              <div className="pt-2 border-t border-outline-variant/30">
+                <button
+                  onClick={logout}
+                  className="w-full py-2.5 px-4 rounded-lg border border-error/30 text-error hover:bg-error-container/20 text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">logout</span>
+                  Sign Out of This Device
                 </button>
               </div>
             </div>

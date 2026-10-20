@@ -9,7 +9,7 @@ export default function LinkedWalletsPage() {
     <>
       <TopAppBar />
       <Sidebar />
-      <main className="flex-1 ml-0 md:ml-80 pt-16 md:pt-0 p-4 md:p-8 h-screen overflow-y-auto w-full max-w-[var(--spacing-max-width-desktop)]">
+      <main className="flex-1 ml-0 md:ml-80 pt-16 md:pt-0 p-0 md:p-8 min-h-screen md:h-screen overflow-y-auto w-full max-w-[var(--spacing-max-width-desktop)] pb-24 md:pb-8">
         <div className="block lg:hidden">
           <MobileLinkedWallets />
         </div>

@@ -1,37 +1,52 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function BottomNavBar() {
+  const pathname = usePathname();
+
+  const isCurrent = (path: string) => {
+    if (path === "/" && pathname === "/") return true;
+    if (path !== "/" && pathname.startsWith(path)) return true;
+    return false;
+  };
+
+  const navItems = [
+    { label: "Dashboard", href: "/", icon: "home" },
+    { label: "Transfer", href: "/send-money", icon: "swap_horiz" },
+    { label: "Wallets", href: "/linked-wallets", icon: "account_balance_wallet" },
+    { label: "Activity", href: "/transactions", icon: "receipt_long" },
+    { label: "Security", href: "/security-settings", icon: "verified_user" },
+  ];
+
   return (
-    <nav className="md:hidden fixed bottom-0 w-full z-50 flex justify-around items-center h-20 pb-safe px-4 bg-surface dark:bg-on-surface border-t border-outline-variant shadow-[0px_-2px_10px_rgba(0,0,0,0.05)]">
-      <Link href="/" className="flex flex-col items-center justify-center flex-1 h-full">
-        <div className="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 mb-1">
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-            home
-          </span>
-        </div>
-        <span className="font-label-sm text-[10px] font-bold text-on-surface">Home</span>
-      </Link>
-      <Link
-        href="/transactions"
-        className="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:bg-surface-container transition-all duration-200 ease-in-out"
-      >
-        <span className="material-symbols-outlined mb-1">history</span>
-        <span className="font-label-sm text-[10px] text-on-surface-variant">History</span>
-      </Link>
-      <Link
-        href="/linked-wallets"
-        className="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:bg-surface-container transition-all duration-200 ease-in-out"
-      >
-        <span className="material-symbols-outlined mb-1">account_balance_wallet</span>
-        <span className="font-label-sm text-[10px] text-on-surface-variant">Wallets</span>
-      </Link>
-      <Link
-        href="/security-settings"
-        className="flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:bg-surface-container transition-all duration-200 ease-in-out"
-      >
-        <span className="material-symbols-outlined mb-1">shield_person</span>
-        <span className="font-label-sm text-[10px] text-on-surface-variant">Security</span>
-      </Link>
+    <nav className="md:hidden fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-4px_16px_rgba(15,23,42,0.04)] border-t border-outline-variant/20">
+      <div className="flex justify-around items-center h-16 px-space-2xs">
+        {navItems.map((item) => {
+          const active = isCurrent(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex flex-col items-center justify-center gap-space-2xs w-14 sm:w-16 h-12 transition-all ${
+                active
+                  ? "text-primary-container font-semibold"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <span
+                className="material-symbols-outlined text-[22px]"
+                style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
+              >
+                {item.icon}
+              </span>
+              <span className="font-label-md text-[11px] leading-tight">{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

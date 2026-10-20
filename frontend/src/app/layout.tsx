@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/lib/session";
+import { LanguageProvider } from "@/lib/language";
+import AuthGuard from "@/components/auth/AuthGuard";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "CrossCash - Dashboard",
-  description: "CrossCash Interoperability System",
+  title: "CrossCash - Interoperable Financial Portal",
+  description: "CrossCash Interoperable MFS Transfer Hub",
 };
 
 export default function RootLayout({
@@ -22,8 +25,14 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-background text-on-background min-h-screen flex flex-col md:flex-row overflow-hidden`}>
-        {children}
+      <body className={`${inter.variable} font-sans antialiased bg-background text-on-background min-h-screen`}>
+        <AuthProvider>
+          <LanguageProvider>
+            <AuthGuard>
+              {children}
+            </AuthGuard>
+          </LanguageProvider>
+        </AuthProvider>
       </body>
     </html>
   );

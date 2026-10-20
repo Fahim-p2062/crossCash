@@ -7,17 +7,29 @@ function ConfirmForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get("phone") || "";
+  const name = searchParams.get("name") || "Recipient";
+  const toProvider = searchParams.get("toProvider") || "Nagad";
+  const fromProvider = searchParams.get("fromProvider") || "bKash";
   const amount = searchParams.get("amount") || "0";
-  const fee = (Number(amount) * 0.01).toFixed(2);
-  const total = (Number(amount) + Number(fee)).toFixed(2);
+
+  const numAmount = Number(amount);
+  const fee = Math.round(numAmount * 0.01 * 100) / 100;
+  const total = Math.round((numAmount + fee) * 100) / 100;
 
   const handleNext = () => {
-    router.push(`/send-money/pin?phone=${phone}&amount=${amount}`);
+    const query = new URLSearchParams({
+      phone,
+      name,
+      toProvider,
+      fromProvider,
+      amount: String(numAmount),
+    });
+    router.push(`/send-money/pin?${query.toString()}`);
   };
 
   return (
     <div className="flex flex-col min-h-screen p-4 max-w-md mx-auto">
-      <header className="flex items-center gap-4 mb-8 pt-4">
+      <header className="flex items-center gap-4 mb-6 pt-4">
         <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-surface-variant transition-colors">
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
@@ -26,44 +38,48 @@ function ConfirmForm() {
 
       <div className="flex-1 flex flex-col gap-6">
         <div className="bg-surface-container-lowest p-6 rounded-[1.5rem] shadow-sm border border-outline-variant/30 text-center">
-          <div className="w-16 h-16 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-md font-bold mx-auto mb-4">
-            R
+          <div className="w-16 h-16 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-md font-bold mx-auto mb-3">
+            {name.charAt(0).toUpperCase()}
           </div>
-          <h2 className="font-headline-md font-bold text-on-surface">Rakib Hasan</h2>
-          <div className="font-label-md text-on-surface-variant mb-4">{phone}</div>
+          <h2 className="font-headline-md font-bold text-on-surface">{name}</h2>
+          <div className="font-label-md text-on-surface-variant mb-3">{phone}</div>
           
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#e8f5e9] text-[#2e7d32] rounded-full font-label-sm mb-6">
-            <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
-            Nagad
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container text-primary rounded-full font-label-sm mb-6">
+            <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              account_balance_wallet
+            </span>
+            Destination: {toProvider}
           </div>
 
-          <div className="font-headline-xl text-primary font-bold mb-6">
-            ৳{amount}
+          <div className="font-headline-xl text-[40px] text-primary font-bold mb-6">
+            ৳{numAmount.toLocaleString()}
           </div>
 
           <div className="space-y-3 pt-4 border-t border-outline-variant/30 text-left">
             <div className="flex justify-between items-center">
               <span className="font-label-md text-on-surface-variant">From Wallet</span>
-              <span className="font-label-md font-bold text-on-surface flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#d81b60]"></span>
-                bKash
+              <span className="font-label-md font-bold text-on-surface flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
+                {fromProvider}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="font-label-md text-on-surface-variant">Interoperability Fee</span>
-              <span className="font-label-md font-bold text-on-surface">৳{fee}</span>
+              <span className="font-label-md text-on-surface-variant">Interoperability Fee (1%)</span>
+              <span className="font-label-md font-bold text-on-surface">৳{fee.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-center pt-2">
+            <div className="flex justify-between items-center pt-2 border-t border-outline-variant/20">
               <span className="font-label-md font-bold text-on-surface">Total Deduction</span>
-              <span className="font-label-md font-bold text-primary">৳{total}</span>
+              <span className="font-label-md font-bold text-primary">৳{total.toFixed(2)}</span>
             </div>
           </div>
         </div>
         
         <div className="bg-surface-container-low p-4 rounded-xl flex items-start gap-3">
-          <span className="material-symbols-outlined text-primary mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
+          <span className="material-symbols-outlined text-primary mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+            info
+          </span>
           <p className="font-label-sm text-on-surface-variant leading-relaxed">
-            By confirming, you authorize CrossCash to deduct the total amount from your bKash wallet and instantly transfer it to the recipient's Nagad wallet.
+            By confirming, CrossCash will instantly deduct ৳{total.toFixed(2)} from your {fromProvider} wallet and credit ৳{numAmount.toLocaleString()} to {name}&apos;s {toProvider} wallet.
           </p>
         </div>
       </div>
@@ -82,7 +98,7 @@ function ConfirmForm() {
 
 export default function SendMoneyConfirm() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-on-surface-variant">Loading...</div>}>
       <ConfirmForm />
     </Suspense>
   );

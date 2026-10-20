@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiRequest, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/session";
 import { AuthResponse } from "@/types";
+import { loginWithBiometrics, checkBiometricSupport } from "@/lib/webauthn";
 
 export default function Login() {
   const router = useRouter();
@@ -14,9 +15,37 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  const [biometricSupported, setBiometricSupported] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [lockedError, setLockedError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    checkBiometricSupport().then((support) => {
+      setBiometricSupported(support.supported);
+    });
+  }, []);
+
+  const handleBiometricLogin = async () => {
+    if (!phone || phone.trim().length < 10) {
+      setGeneralError("Please enter your Phone Number first to authenticate with biometrics.");
+      return;
+    }
+    setGeneralError(null);
+    setLockedError(null);
+    setIsBiometricLoading(true);
+
+    try {
+      const data = await loginWithBiometrics(phone.trim());
+      login(data.token, data.user);
+      router.push("/");
+    } catch (err: any) {
+      setGeneralError(err.message || "Biometric login failed. Please verify sensor or use PIN.");
+    } finally {
+      setIsBiometricLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,18 +172,42 @@ export default function Login() {
             )}
           </div>
 
-          <div className="pt-4">
+          <div className="pt-2">
             <button
               type="submit"
-              disabled={isLoading || !phone || pin.length < 4}
+              disabled={isLoading || isBiometricLoading || !phone || pin.length < 4}
               className="w-full bg-primary text-white h-12 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container disabled:opacity-50 transition-colors shadow-sm flex items-center justify-center gap-2"
             >
               {isLoading && (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               )}
-              {isLoading ? "Logging In..." : "Log In"}
+              {isLoading ? "Logging In..." : "Log In with PIN"}
             </button>
           </div>
+
+          {biometricSupported && (
+            <div className="pt-2">
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-outline-variant/30"></div>
+                <span className="flex-shrink mx-4 text-xs font-label-md text-on-surface-variant font-medium">OR FAST UNLOCK</span>
+                <div className="flex-grow border-t border-outline-variant/30"></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleBiometricLogin}
+                disabled={isLoading || isBiometricLoading}
+                className="w-full bg-surface-container-high text-on-surface hover:bg-surface-container-highest h-12 rounded-xl font-label-md font-semibold transition-colors shadow-sm flex items-center justify-center gap-2 border border-outline-variant/40"
+              >
+                {isBiometricLoading ? (
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <span className="material-symbols-outlined text-[22px] text-primary">fingerprint</span>
+                )}
+                <span>{isBiometricLoading ? "Scanning Biometrics..." : "Sign in with Fingerprint / Face ID"}</span>
+              </button>
+            </div>
+          )}
         </form>
 
         <div className="mt-8 text-center">

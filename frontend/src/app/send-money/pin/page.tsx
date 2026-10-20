@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiRequest, ApiError } from "@/lib/api";
 import { Transaction } from "@/types";
+import { authorizeTransferWithBiometrics } from "@/lib/webauthn";
 
 interface TransferResponse {
   message: string;
@@ -75,6 +76,42 @@ function PinForm() {
     }
   };
 
+  const handleBiometricAuth = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authorizeTransferWithBiometrics();
+      const res = await apiRequest<TransferResponse>("/api/transactions/transfer", {
+        method: "POST",
+        body: JSON.stringify({
+          recipientPhone: phone,
+          recipientName: name,
+          fromWalletProvider: fromProvider,
+          toWalletProvider: toProvider,
+          amount: Number(amount),
+        }),
+      });
+
+      const tx = res.transaction;
+      const query = new URLSearchParams({
+        phone,
+        name: tx.recipientName || name,
+        fromProvider: tx.fromWalletProvider || fromProvider,
+        toProvider: tx.toWalletProvider || toProvider,
+        amount: String(tx.amount || amount),
+        fee: String(tx.fee || (Number(amount) * 0.01).toFixed(2)),
+        total: String(tx.total || amount),
+        txId: tx._id,
+      });
+
+      router.push(`/send-money/success?${query.toString()}`);
+    } catch (err: unknown) {
+      setIsLoading(false);
+      setError(err instanceof Error ? err.message : "Biometric authorization failed.");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen p-4 max-w-md mx-auto bg-primary text-white">
       <header className="flex items-center gap-4 mb-6 pt-4">
@@ -127,7 +164,15 @@ function PinForm() {
               {num}
             </button>
           ))}
-          <div className="w-16 h-16"></div>
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={handleBiometricAuth}
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white hover:bg-white/10 active:bg-white/25 transition-colors"
+            title="Authorize with Fingerprint / Face ID"
+          >
+            <span className="material-symbols-outlined text-3xl">fingerprint</span>
+          </button>
           <button
             type="button"
             disabled={isLoading}

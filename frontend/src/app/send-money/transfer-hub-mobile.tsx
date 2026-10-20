@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/session";
 import { apiRequest } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 import { BalanceResponse, Wallet } from "@/types";
+import { authorizeTransferWithBiometrics } from "@/lib/webauthn";
 
 export default function MobileTransferHub() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function MobileTransferHub() {
   const [activeChip, setActiveChip] = useState<string>("2000");
   const [isFlipped, setIsFlipped] = useState(false);
   const [showSourcePicker, setShowSourcePicker] = useState(false);
+  const [isBiometricTransferring, setIsBiometricTransferring] = useState(false);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -84,6 +86,53 @@ export default function MobileTransferHub() {
       amount: String(numericAmount),
     });
     router.push(`/send-money/confirm?${query.toString()}`);
+  };
+
+  const handleBiometricExpressTransfer = async () => {
+    if (numericAmount <= 0) {
+      alert("Please enter a transfer amount first.");
+      return;
+    }
+    if (!recipientPhone || recipientPhone.length < 11) {
+      alert("Please enter a valid 11-digit recipient phone number.");
+      return;
+    }
+
+    setIsBiometricTransferring(true);
+    try {
+      // 1. Trigger hardware sensor prompt
+      await authorizeTransferWithBiometrics();
+
+      // 2. Hardware biometric matched! Execute transfer immediately
+      const res = await apiRequest<any>("/api/transactions/transfer", {
+        method: "POST",
+        body: JSON.stringify({
+          recipientPhone,
+          recipientName: recipientName || `User ${recipientPhone.slice(-4)}`,
+          fromWalletProvider: sourceProvider,
+          toWalletProvider: destinationProvider,
+          amount: numericAmount,
+        }),
+      });
+
+      const tx = res.transaction;
+      const query = new URLSearchParams({
+        phone: recipientPhone,
+        name: tx.recipientName || recipientName || "Recipient",
+        fromProvider: tx.fromWalletProvider || sourceProvider,
+        toProvider: tx.toWalletProvider || destinationProvider,
+        amount: String(tx.amount || numericAmount),
+        fee: String(tx.fee || fee),
+        total: String(tx.total || total),
+        txId: tx._id,
+      });
+
+      router.push(`/send-money/success?${query.toString()}`);
+    } catch (err: any) {
+      alert(err.message || "Biometric transfer authorization failed.");
+    } finally {
+      setIsBiometricTransferring(false);
+    }
   };
 
   const getSourceGradient = (prov: string) => {
@@ -486,11 +535,17 @@ export default function MobileTransferHub() {
             </button>
             <button
               aria-label="Biometric Express Transfer"
-              onClick={handleTransfer}
-              className="w-14 h-14 rounded-xl bg-surface-container-highest text-primary-container flex items-center justify-center hover:bg-surface-container-high transition-colors shrink-0 shadow-sm"
+              onClick={handleBiometricExpressTransfer}
+              disabled={numericAmount <= 0 || isBiometricTransferring}
+              className="w-14 h-14 rounded-xl bg-surface-container-highest text-primary-container flex items-center justify-center hover:bg-surface-container-high transition-colors shrink-0 shadow-sm disabled:opacity-50"
               type="button"
+              title="Express Biometric Transfer"
             >
-              <span className="material-symbols-outlined text-[28px]">fingerprint</span>
+              {isBiometricTransferring ? (
+                <div className="w-5 h-5 border-2 border-primary-container border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <span className="material-symbols-outlined text-[28px]">fingerprint</span>
+              )}
             </button>
           </div>
           <div className="flex items-center justify-center gap-space-xs text-on-surface-variant">

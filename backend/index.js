@@ -72,6 +72,7 @@ const authLimiter = rateLimit({
 // 6. Routes & Middlewares
 const { verifyToken } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
+const biometricRoutes = require('./routes/biometric');
 const userRoutes = require('./routes/user');
 const transactionRoutes = require('./routes/transaction');
 
@@ -79,6 +80,9 @@ const transactionRoutes = require('./routes/transaction');
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'CrossCash API is running' });
 });
+
+// Biometric auth routes
+app.use('/api/auth/biometric', biometricRoutes);
 
 // Public auth routes with rate limiting (/api/auth/register, /api/auth/login)
 app.use('/api/auth', authLimiter, authRoutes);

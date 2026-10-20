@@ -41,6 +41,21 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  biometricCredentials: [
+    {
+      credentialID: { type: String, required: true },
+      credentialPublicKey: { type: Buffer, required: true },
+      counter: { type: Number, default: 0 },
+      transports: [String],
+      deviceType: String,
+      backedUp: Boolean,
+      createdAt: { type: Date, default: Date.now },
+    }
+  ],
+  currentChallenge: {
+    type: String,
+    default: null,
+  },
   wallets: [walletSchema],
 }, { timestamps: true });
 

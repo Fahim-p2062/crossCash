@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/session";
+import {
+  getBiometricStatus,
+  registerBiometricDevice,
+  removeBiometricDevice,
+  checkBiometricSupport,
+} from "@/lib/webauthn";
 
 interface SessionDevice {
   id: string;
@@ -28,10 +34,26 @@ export default function MobileSecuritySettings() {
   });
 
   // Toggles
-  const [biometricEnabled, setBiometricEnabled] = useState(true);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [isBiometricBusy, setIsBiometricBusy] = useState(false);
+  const [biometricSupported, setBiometricSupported] = useState(true);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [dataSyncEnabled, setDataSyncEnabled] = useState(false);
   const [stealthModeEnabled, setStealthModeEnabled] = useState(true);
+
+  // Check biometric support & existing registration on mount
+  useEffect(() => {
+    checkBiometricSupport().then((support) => {
+      setBiometricSupported(support.supported);
+      if (support.supported) {
+        getBiometricStatus()
+          .then((res) => {
+            setBiometricEnabled(res.enabled);
+          })
+          .catch(() => {});
+      }
+    });
+  }, []);
 
   // Active external sessions
   const [sessions, setSessions] = useState<SessionDevice[]>([
@@ -57,12 +79,41 @@ export default function MobileSecuritySettings() {
     setToast({ visible: true, message, icon, isError });
     setTimeout(() => {
       setToast((prev) => ({ ...prev, visible: false }));
-    }, 2600);
+    }, 2800);
   };
 
-  const handleBiometricToggle = (checked: boolean) => {
-    setBiometricEnabled(checked);
-    showToast(checked ? "Biometric validation enabled" : "Biometric unlock disabled");
+  const handleBiometricToggle = async (checked: boolean) => {
+    if (isBiometricBusy) return;
+    if (!biometricSupported) {
+      showToast("Biometrics not supported on this browser", "warning", true);
+      return;
+    }
+
+    setIsBiometricBusy(true);
+
+    if (checked) {
+      try {
+        showToast("Scan your fingerprint / Face ID to register...", "fingerprint");
+        const res = await registerBiometricDevice();
+        setBiometricEnabled(true);
+        showToast(res.message || "Biometric unlock registered successfully!", "check_circle");
+      } catch (err: any) {
+        setBiometricEnabled(false);
+        showToast(err.message || "Could not register biometric sensor", "error", true);
+      } finally {
+        setIsBiometricBusy(false);
+      }
+    } else {
+      try {
+        await removeBiometricDevice();
+        setBiometricEnabled(false);
+        showToast("Biometric unlock removed from this account", "delete");
+      } catch (err: any) {
+        showToast(err.message || "Failed to remove biometrics", "error", true);
+      } finally {
+        setIsBiometricBusy(false);
+      }
+    }
   };
 
   const handleTwoFactorToggle = (checked: boolean) => {

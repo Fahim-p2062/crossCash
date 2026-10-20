@@ -184,7 +184,7 @@ export default function MobileSecuritySettings() {
       </div>
 
       {/* Status & Profile Overview */}
-      <section className="px-margin pt-space-md flex flex-col gap-space-md">
+      <section className="px-margin md:px-0 pt-space-md flex flex-col gap-space-md">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <h1 className="font-headline-md text-headline-md text-on-surface">Security & Privacy</h1>
@@ -241,7 +241,7 @@ export default function MobileSecuritySettings() {
       </section>
 
       {/* Section 1: Authentication & Access Controls */}
-      <section className="px-margin pt-space-lg flex flex-col gap-space-sm">
+      <section className="px-margin md:px-0 pt-space-lg flex flex-col gap-space-sm">
         <div className="flex items-center justify-between px-space-2xs">
           <div className="flex items-center gap-space-xs">
             <span className="material-symbols-outlined text-primary-container text-[20px]">lock_person</span>
@@ -365,7 +365,7 @@ export default function MobileSecuritySettings() {
       </section>
 
       {/* Section 2: Privacy & Data Interoperability */}
-      <section className="px-margin pt-space-lg flex flex-col gap-space-sm">
+      <section className="px-margin md:px-0 pt-space-lg flex flex-col gap-space-sm">
         <div className="flex items-center justify-between px-space-2xs">
           <div className="flex items-center gap-space-xs">
             <span className="material-symbols-outlined text-primary-container text-[20px]">
@@ -426,7 +426,7 @@ export default function MobileSecuritySettings() {
       </section>
 
       {/* Section 3: Active Devices & Sessions */}
-      <section className="px-margin pt-space-lg flex flex-col gap-space-sm">
+      <section className="px-margin md:px-0 pt-space-lg flex flex-col gap-space-sm">
         <div className="flex items-center justify-between px-space-2xs">
           <div className="flex items-center gap-space-xs">
             <span className="material-symbols-outlined text-primary-container text-[20px]">devices</span>
@@ -505,7 +505,7 @@ export default function MobileSecuritySettings() {
       </section>
 
       {/* Section 4: Critical Panic Safeguards */}
-      <section className="px-margin pt-space-xl flex flex-col gap-space-sm">
+      <section className="px-margin md:px-0 pt-space-xl flex flex-col gap-space-sm">
         <div className="bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-md">
           <div className="flex items-start gap-space-sm">
             <div className="w-10 h-10 rounded-lg bg-error-container text-on-error-container flex items-center justify-center shrink-0">
@@ -532,7 +532,7 @@ export default function MobileSecuritySettings() {
       </section>
 
       {/* Section 5: Log Out of Current Account */}
-      <section className="px-margin pt-space-lg pb-space-2xl flex flex-col gap-space-sm">
+      <section className="px-margin md:px-0 pt-space-lg pb-space-2xl flex flex-col gap-space-sm">
         <button
           type="button"
           onClick={() => {

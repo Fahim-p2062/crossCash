@@ -46,7 +46,7 @@ export default function MobileDashboard({
   };
 
   return (
-    <div className="flex flex-col w-full px-margin pb-space-lg gap-space-lg pt-2">
+    <div className="flex flex-col w-full px-margin md:px-0 pb-space-lg gap-space-lg pt-2 max-w-5xl">
       {/* User Greeting & Profile Meta */}
       <section className="flex items-center justify-between pt-space-sm">
         <div className="flex flex-col min-w-0">
@@ -221,10 +221,10 @@ export default function MobileDashboard({
           </Link>
         </div>
 
-        {/* Horizontal Scrollable Cards */}
-        <div className="flex items-stretch gap-space-md overflow-x-auto pb-space-xs -mx-margin px-margin no-scrollbar scroll-smooth">
+        {/* Horizontal Scrollable Cards on mobile, 4-col grid on desktop */}
+        <div className="flex lg:grid lg:grid-cols-4 items-stretch gap-space-md overflow-x-auto pb-space-xs -mx-margin px-margin lg:mx-0 lg:px-0 no-scrollbar scroll-smooth">
           {/* bKash Card (Primary) */}
-          <div className="flex-shrink-0 w-64 rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
+          <div className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#E2136E]"></div>
             <div className="flex items-start justify-between pt-1">
               <div className="flex items-center gap-space-sm">
@@ -255,7 +255,7 @@ export default function MobileDashboard({
           </div>
 
           {/* Nagad Card */}
-          <div className="flex-shrink-0 w-64 rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
+          <div className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#F7941D]"></div>
             <div className="flex items-start justify-between pt-1">
               <div className="flex items-center gap-space-sm">
@@ -286,7 +286,7 @@ export default function MobileDashboard({
           </div>
 
           {/* Rocket Card */}
-          <div className="flex-shrink-0 w-64 rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
+          <div className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#8C3494]"></div>
             <div className="flex items-start justify-between pt-1">
               <div className="flex items-center gap-space-sm">
@@ -319,7 +319,7 @@ export default function MobileDashboard({
           {/* Link New Card Button */}
           <Link
             href="/linked-wallets"
-            className="flex-shrink-0 w-44 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors p-space-md shadow-sm flex flex-col items-center justify-center text-center gap-space-xs text-primary-container active:scale-98"
+            className="flex-shrink-0 w-44 lg:w-auto rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors p-space-md shadow-sm flex flex-col items-center justify-center text-center gap-space-xs text-primary-container active:scale-98"
           >
             <div className="w-11 h-11 rounded-full bg-surface-container-lowest flex items-center justify-center text-primary-container shadow-xs">
               <span className="material-symbols-outlined text-[24px]">add_link</span>

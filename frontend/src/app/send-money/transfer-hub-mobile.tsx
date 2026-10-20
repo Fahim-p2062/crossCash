@@ -150,7 +150,7 @@ export default function MobileTransferHub() {
   return (
     <div className="flex flex-col w-full pb-8 pt-2">
       {/* Subtle ambient decorative glow */}
-      <div className="relative w-full px-margin pt-space-sm space-y-space-md">
+      <div className="relative w-full px-margin md:px-0 pt-space-sm space-y-space-md">
         {/* Context Banner */}
         <div className="flex flex-col space-y-space-2xs">
           <div className="inline-flex items-center gap-space-xs self-start px-space-sm py-0.5 rounded-full bg-secondary-container text-on-secondary-fixed-variant">

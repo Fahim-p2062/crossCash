@@ -65,7 +65,7 @@ export default function MobileLinkedWallets() {
   const phone = user?.phone || "01777885053";
 
   return (
-    <div className="flex flex-col w-full px-margin pb-space-2xl space-y-space-lg pt-2">
+    <div className="flex flex-col w-full px-margin md:px-0 pb-space-2xl space-y-space-lg pt-2">
       {/* Header Intro & Delight Micro-Badge */}
       <div className="flex flex-col gap-space-2xs mt-space-sm">
         <div className="flex items-center justify-between">

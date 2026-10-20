@@ -20,7 +20,12 @@ export default function Splash() {
 
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-primary">
-      <div className="text-center animate-pulse">
+      <div className="text-center animate-pulse flex flex-col items-center">
+        <img
+          src="/logo.png"
+          alt="CrossCash Logo"
+          className="w-24 h-24 rounded-3xl object-cover shadow-2xl mb-4 ring-4 ring-white/20"
+        />
         <h1 className="font-headline-xl text-[48px] font-bold text-white mb-2">CrossCash</h1>
         <p className="font-body-lg text-primary-fixed-dim">Instant Transfers. Zero Friction.</p>
       </div>

@@ -60,9 +60,11 @@ export default function TopAppBar({ subtitle }: TopAppBarProps) {
     <header className="md:hidden fixed top-0 w-full z-50 pt-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
       <div className="h-16 px-margin flex items-center justify-between relative">
         <Link href="/" className="flex items-center gap-space-sm">
-          <div className="h-8 w-8 rounded-lg bg-primary-container text-white flex items-center justify-center font-bold text-sm shadow-sm">
-            <span className="material-symbols-outlined text-[20px]">currency_exchange</span>
-          </div>
+          <img
+            src="/logo.png"
+            alt="CrossCash"
+            className="h-9 w-9 rounded-xl object-cover shadow-sm ring-1 ring-outline-variant/20"
+          />
           <div className="flex flex-col">
             <span className="font-title-md text-title-md text-primary-container leading-none font-bold">CrossCash</span>
             <span className="font-label-md text-label-md text-on-surface-variant font-medium">{getSubtitle()}</span>

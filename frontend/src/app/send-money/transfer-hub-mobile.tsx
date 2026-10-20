@@ -8,15 +8,42 @@ import { formatMoney } from "@/lib/money";
 import { BalanceResponse, Wallet } from "@/types";
 import { authorizeTransferWithBiometrics } from "@/lib/webauthn";
 
+export interface Contact {
+  id: string;
+  name: string;
+  phone: string;
+  provider: "bKash" | "Nagad" | "Rocket" | "Bank";
+  accountType?: string;
+  avatarBg?: string;
+}
+
+export const PHONE_CONTACTS: Contact[] = [
+  { id: "1", name: "Sadia Rahman", phone: "01712345678", provider: "bKash", accountType: "bKash Personal", avatarBg: "bg-[#fce4ec] text-[#d81b60]" },
+  { id: "2", name: "Rakib Hasan", phone: "01912345678", provider: "Nagad", accountType: "Nagad Personal", avatarBg: "bg-[#fff3e0] text-[#e65100]" },
+  { id: "3", name: "Tanvir Ahmed", phone: "01811223344", provider: "Rocket", accountType: "Rocket DBBL", avatarBg: "bg-[#f3e5f5] text-[#8C3494]" },
+  { id: "4", name: "Mom (আম্মু)", phone: "01711002233", provider: "bKash", accountType: "Family Primary", avatarBg: "bg-tertiary-fixed text-on-tertiary-fixed" },
+  { id: "5", name: "Nusrat Jahan", phone: "01301987654", provider: "bKash", accountType: "bKash Personal", avatarBg: "bg-[#fce4ec] text-[#d81b60]" },
+  { id: "6", name: "Brother (ভাইয়া)", phone: "01911445566", provider: "Nagad", accountType: "Personal", avatarBg: "bg-secondary-container text-on-secondary-container" },
+  { id: "7", name: "Arif Hossain", phone: "01678554433", provider: "Rocket", accountType: "Rocket DBBL", avatarBg: "bg-[#f3e5f5] text-[#8C3494]" },
+  { id: "8", name: "Fahad Karim", phone: "01552334455", provider: "Nagad", accountType: "Nagad Personal", avatarBg: "bg-[#fff3e0] text-[#e65100]" },
+  { id: "9", name: "City Bank Savings", phone: "2051104892", provider: "Bank", accountType: "A/C •••• 4892", avatarBg: "bg-surface-container-high text-primary-container" },
+];
+
 export default function MobileTransferHub() {
   const router = useRouter();
   const { user } = useAuth();
 
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [sourceProvider, setSourceProvider] = useState<"bKash" | "Nagad" | "Rocket">("bKash");
-  const [destinationProvider, setDestinationProvider] = useState<"Nagad" | "Rocket" | "Bank">("Nagad");
+  const [destinationProvider, setDestinationProvider] = useState<"bKash" | "Nagad" | "Rocket" | "Bank">("Nagad");
+  
+  // Recipient state - user can enter any custom number or pick contact
   const [recipientPhone, setRecipientPhone] = useState("01912345678");
   const [recipientName, setRecipientName] = useState("Rakib Hasan (Nagad Personal)");
+  const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
+  const [contactSearchQuery, setContactSearchQuery] = useState("");
+  const [contactFilterProvider, setContactFilterProvider] = useState<string>("All");
+
   const [amount, setAmount] = useState("2000");
   const [activeChip, setActiveChip] = useState<string>("2000");
   const [isFlipped, setIsFlipped] = useState(false);
@@ -33,6 +60,18 @@ export default function MobileTransferHub() {
       })
       .catch(() => {});
   }, [user]);
+
+  // Dynamic destination options excluding current source provider
+  const destinationOptions = (["bKash", "Nagad", "Rocket", "Bank"] as const).filter(
+    (prov) => prov !== sourceProvider
+  );
+
+  // Auto-adjust destination provider if it clashes with source provider
+  useEffect(() => {
+    if (destinationProvider === (sourceProvider as any)) {
+      setDestinationProvider(destinationOptions[0]);
+    }
+  }, [sourceProvider, destinationProvider, destinationOptions]);
 
   const getSourceBalance = (provider: string) => {
     const w = wallets.find((item) => item.provider.toLowerCase() === provider.toLowerCase());
@@ -70,14 +109,66 @@ export default function MobileTransferHub() {
     setIsFlipped(!isFlipped);
     if (destinationProvider !== "Bank") {
       const oldSource = sourceProvider;
-      setSourceProvider(destinationProvider as "bKash" | "Nagad" | "Rocket");
-      setDestinationProvider(oldSource as "Nagad" | "Rocket");
+      const oldDest = destinationProvider;
+      setSourceProvider(oldDest as "bKash" | "Nagad" | "Rocket");
+      setDestinationProvider(oldSource as any);
     }
   };
 
+  // Recipient input & contacts handlers
+  const handlePhoneInputChange = (rawVal: string) => {
+    const cleaned = rawVal.replace(/[^0-9]/g, "");
+    setRecipientPhone(cleaned);
+
+    const matched = PHONE_CONTACTS.find((c) => c.phone === cleaned);
+    if (matched) {
+      setRecipientName(matched.name);
+      if (matched.provider !== "Bank" && matched.provider !== sourceProvider) {
+        setDestinationProvider(matched.provider);
+      }
+    } else if (cleaned.length >= 11) {
+      setRecipientName(`New Number (${cleaned.slice(-4)})`);
+      // Auto-detect provider prefix
+      if ((cleaned.startsWith("017") || cleaned.startsWith("013")) && sourceProvider !== "bKash") {
+        setDestinationProvider("bKash");
+      } else if ((cleaned.startsWith("019") || cleaned.startsWith("014")) && sourceProvider !== "Nagad") {
+        setDestinationProvider("Nagad");
+      } else if ((cleaned.startsWith("018") || cleaned.startsWith("016") || cleaned.startsWith("015")) && sourceProvider !== "Rocket") {
+        setDestinationProvider("Rocket");
+      }
+    } else if (cleaned.length === 0) {
+      setRecipientName("");
+    } else {
+      setRecipientName("Custom Recipient");
+    }
+  };
+
+  const handleClearRecipient = () => {
+    setRecipientPhone("");
+    setRecipientName("");
+  };
+
+  const handleSelectContact = (contact: Contact) => {
+    setRecipientPhone(contact.phone);
+    setRecipientName(contact.name);
+    if (contact.provider === "Bank") {
+      setDestinationProvider("Bank");
+    } else if (contact.provider !== sourceProvider) {
+      setDestinationProvider(contact.provider);
+    }
+    setIsContactsModalOpen(false);
+  };
+
   const handleTransfer = () => {
-    if (numericAmount <= 0) return;
-    const destName = recipientName || (recipientPhone ? `User ${recipientPhone.slice(-4)}` : "Recipient");
+    if (numericAmount <= 0) {
+      alert("Please enter a transfer amount.");
+      return;
+    }
+    if (!recipientPhone || recipientPhone.length < 11) {
+      alert("Please enter a valid 11-digit recipient phone number or select a contact.");
+      return;
+    }
+    const destName = recipientName || `Recipient (${recipientPhone.slice(-4)})`;
     const query = new URLSearchParams({
       phone: recipientPhone,
       name: destName,
@@ -94,7 +185,7 @@ export default function MobileTransferHub() {
       return;
     }
     if (!recipientPhone || recipientPhone.length < 11) {
-      alert("Please enter a valid 11-digit recipient phone number.");
+      alert("Please enter a valid 11-digit recipient phone number or pick a contact.");
       return;
     }
 
@@ -141,15 +232,25 @@ export default function MobileTransferHub() {
     return "linear-gradient(135deg, #8c3686, #5c246e)";
   };
 
-  const getSourceInitial = (prov: string) => {
+  const getSourceInitials = (prov: string) => {
     if (prov === "bKash") return "bK";
     if (prov === "Nagad") return "NG";
     return "RK";
   };
 
+  // Contacts filter in modal
+  const filteredContactsList = PHONE_CONTACTS.filter((c) => {
+    const matchesQuery =
+      c.name.toLowerCase().includes(contactSearchQuery.toLowerCase()) ||
+      c.phone.includes(contactSearchQuery);
+    const matchesProvider =
+      contactFilterProvider === "All" || c.provider === contactFilterProvider;
+    return matchesQuery && matchesProvider;
+  });
+
   return (
     <div className="flex flex-col w-full pb-8 pt-2">
-      {/* Subtle ambient decorative glow */}
+      {/* Container */}
       <div className="relative w-full px-margin md:px-0 pt-space-sm space-y-space-md">
         {/* Context Banner */}
         <div className="flex flex-col space-y-space-2xs">
@@ -167,106 +268,104 @@ export default function MobileTransferHub() {
           </p>
         </div>
 
-        {/* Transfer Interactive Form Block */}
-        <div className="flex flex-col space-y-space-xs relative">
+        {/* Unified Payment Card */}
+        <div className="flex flex-col space-y-space-md">
           {/* Source Wallet Card */}
-          <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-sm transition-all duration-200 focus-within:shadow-md">
-            <div className="flex items-center justify-between text-on-surface-variant">
-              <span className="font-label-md text-label-md uppercase tracking-wider font-semibold">
+          <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-sm relative">
+            <div className="flex items-center justify-between">
+              <span className="font-label-md text-label-md uppercase tracking-wider font-semibold text-on-surface-variant">
                 From (Source Wallet)
               </span>
-              <span className="inline-flex items-center gap-1 font-body-sm text-body-sm text-tertiary-container font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-tertiary-container"></span>
-                Direct Auth Active
+              <span className="font-body-sm text-body-sm text-tertiary font-medium flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span> Direct Auth Active
               </span>
             </div>
 
             <button
-              aria-label="Change Source Wallet"
-              className="w-full flex items-center justify-between text-left p-space-sm rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors"
-              type="button"
               onClick={() => setShowSourcePicker(!showSourcePicker)}
+              className="w-full flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors text-left"
+              type="button"
             >
-              <div className="flex items-center gap-space-sm min-w-0">
+              <div className="flex items-center gap-space-sm">
                 <div
-                  className="w-11 h-11 rounded-xl bg-surface-container flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden text-white font-title-md text-title-md font-bold tracking-tight"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-title-md text-title-md font-bold shadow-xs"
                   style={{ background: getSourceGradient(sourceProvider) }}
                 >
-                  {getSourceInitial(sourceProvider)}
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-tertiary-container rounded-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-white text-[10px]">check</span>
-                  </div>
+                  {getSourceInitials(sourceProvider)}
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-space-xs">
-                    <span className="font-title-md text-title-md text-on-surface font-semibold truncate">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-title-md text-title-md text-on-surface font-semibold">
                       {sourceProvider} (Personal)
                     </span>
-                    <span className="px-1.5 py-0.2 rounded bg-surface-container-highest text-primary font-label-md text-label-md font-semibold">
+                    <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface-variant font-label-md text-[10px] font-semibold uppercase">
                       MFS
                     </span>
                   </div>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant truncate">
+                  <span className="font-body-sm text-body-sm text-on-surface-variant">
                     {user?.phone || "01777885053"}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-space-xs pl-space-xs text-right shrink-0">
-                <div className="flex flex-col items-end">
+              <div className="flex items-center gap-space-xs text-right">
+                <div className="flex flex-col">
                   <span className="font-label-md text-label-md text-on-surface-variant">Available</span>
                   <span className="font-title-md text-title-md text-on-surface font-bold">
-                    {formatMoney(currentSourceBalance)}
+                    ৳{currentSourceBalance.toLocaleString()}
                   </span>
                 </div>
-                <span
-                  className={`material-symbols-outlined text-on-surface-variant text-[20px] transition-transform ${
-                    showSourcePicker ? "rotate-180" : ""
-                  }`}
-                >
-                  expand_more
+                <span className="material-symbols-outlined text-outline">
+                  {showSourcePicker ? "expand_less" : "expand_more"}
                 </span>
               </div>
             </button>
 
-            {/* Source Wallet Dropdown */}
+            {/* Source Wallet Picker Dropdown */}
             {showSourcePicker && (
-              <div className="grid grid-cols-3 gap-2 pt-1 animate-fadeIn">
-                {(["bKash", "Nagad", "Rocket"] as const).map((prov) => (
-                  <button
-                    key={prov}
-                    type="button"
-                    onClick={() => {
-                      setSourceProvider(prov);
-                      setShowSourcePicker(false);
-                    }}
-                    className={`py-2 px-2 rounded-lg border text-xs font-semibold flex flex-col items-center gap-1 transition-colors ${
-                      sourceProvider === prov
-                        ? "border-primary bg-primary-container text-white"
-                        : "border-outline-variant/30 bg-surface-container-low text-on-surface"
-                    }`}
-                  >
-                    <span>{prov}</span>
-                    <span className="text-[10px] opacity-80">{formatMoney(getSourceBalance(prov))}</span>
-                  </button>
-                ))}
+              <div className="mt-2 p-2 bg-surface rounded-xl border border-outline-variant/30 shadow-md space-y-1 animate-fadeIn">
+                {(["bKash", "Nagad", "Rocket"] as const).map((prov) => {
+                  const bal = getSourceBalance(prov);
+                  const isSel = sourceProvider === prov;
+                  return (
+                    <button
+                      key={prov}
+                      type="button"
+                      onClick={() => {
+                        setSourceProvider(prov);
+                        setShowSourcePicker(false);
+                      }}
+                      className={`w-full flex items-center justify-between p-2.5 rounded-lg text-left transition-colors ${
+                        isSel ? "bg-primary-container/10 border border-primary/20" : "hover:bg-surface-container"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-7 h-7 rounded-md flex items-center justify-center text-white text-xs font-bold"
+                          style={{ background: getSourceGradient(prov) }}
+                        >
+                          {getSourceInitials(prov)}
+                        </div>
+                        <span className="font-title-md text-body-md text-on-surface font-semibold">{prov}</span>
+                      </div>
+                      <span className="font-title-md text-body-md font-bold text-on-surface">৳{bal.toLocaleString()}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* Connector & Interoperability Bridge Switcher */}
-          <div className="relative py-space-xs flex items-center justify-center z-10 -my-2.5">
-            <div className="absolute inset-x-0 h-0.5 bg-surface-container-high"></div>
+          {/* Central Interoperability Switch Button */}
+          <div className="relative flex justify-center -my-3 z-10">
             <button
-              type="button"
+              aria-label="Switch transfer direction"
               onClick={handleSwitchRails}
-              className={`relative flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-primary-container text-on-primary shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer ${
-                isFlipped ? "rotate-180" : ""
-              }`}
-              id="bridge-switch-btn"
-              title="Tap to switch rails"
+              className="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-primary-container text-on-primary shadow-md active:scale-95 transition-transform border-2 border-surface-container-lowest"
+              id="interop-switch-btn"
+              type="button"
             >
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-surface-container-lowest/15">
-                <span className="material-symbols-outlined text-[16px] text-tertiary-fixed">swap_vert</span>
+              <div className={`transition-transform duration-300 ${isFlipped ? "rotate-180" : ""}`}>
+                <span className="material-symbols-outlined text-[18px]">swap_vert</span>
               </div>
               <span className="font-label-md text-label-md font-semibold tracking-wide text-surface-container-lowest">
                 Instant Interoperability Switch
@@ -286,111 +385,139 @@ export default function MobileTransferHub() {
               </span>
             </div>
 
-            {/* Destination Selector Tabs */}
-            <div className="grid grid-cols-3 gap-space-xs p-1 bg-surface-container-low rounded-lg" role="tablist">
-              {/* Nagad Tab */}
-              <button
-                aria-selected={destinationProvider === "Nagad"}
-                onClick={() => setDestinationProvider("Nagad")}
-                className={`destination-tab flex items-center justify-center gap-space-xs py-2 px-space-xs rounded-md transition-all ${
-                  destinationProvider === "Nagad"
-                    ? "bg-surface-container-lowest shadow-sm text-on-surface font-semibold"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-                role="tab"
-                type="button"
-              >
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                  style={{ background: "linear-gradient(135deg, #f7941d, #d03027)" }}
-                >
-                  N
-                </div>
-                <span className="font-body-sm text-body-sm truncate">Nagad</span>
-              </button>
-
-              {/* Rocket Tab */}
-              <button
-                aria-selected={destinationProvider === "Rocket"}
-                onClick={() => setDestinationProvider("Rocket")}
-                className={`destination-tab flex items-center justify-center gap-space-xs py-2 px-space-xs rounded-md transition-all ${
-                  destinationProvider === "Rocket"
-                    ? "bg-surface-container-lowest shadow-sm text-on-surface font-semibold"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-                role="tab"
-                type="button"
-              >
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                  style={{ background: "linear-gradient(135deg, #8c3686, #5c246e)" }}
-                >
-                  R
-                </div>
-                <span className="font-body-sm text-body-sm truncate">Rocket</span>
-              </button>
-
-              {/* Bank Account Tab */}
-              <button
-                aria-selected={destinationProvider === "Bank"}
-                onClick={() => setDestinationProvider("Bank")}
-                className={`destination-tab flex items-center justify-center gap-space-xs py-2 px-space-xs rounded-md transition-all ${
-                  destinationProvider === "Bank"
-                    ? "bg-surface-container-lowest shadow-sm text-on-surface font-semibold"
-                    : "text-on-surface-variant hover:text-on-surface"
-                }`}
-                role="tab"
-                type="button"
-              >
-                <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary-container text-on-primary">
-                  <span className="material-symbols-outlined text-[12px]">account_balance</span>
-                </div>
-                <span className="font-body-sm text-body-sm truncate">Bank</span>
-              </button>
+            {/* Destination Selector Tabs (Dynamic based on source provider) */}
+            <div className={`grid grid-cols-${destinationOptions.length} gap-space-xs p-1 bg-surface-container-low rounded-lg`} role="tablist">
+              {destinationOptions.map((prov) => {
+                const isSelected = destinationProvider === prov;
+                return (
+                  <button
+                    key={prov}
+                    aria-selected={isSelected}
+                    onClick={() => setDestinationProvider(prov)}
+                    className={`destination-tab flex items-center justify-center gap-space-xs py-2 px-space-xs rounded-md transition-all ${
+                      isSelected
+                        ? "bg-surface-container-lowest shadow-sm text-on-surface font-semibold"
+                        : "text-on-surface-variant hover:text-on-surface"
+                    }`}
+                    role="tab"
+                    type="button"
+                  >
+                    <div
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
+                      style={{
+                        background:
+                          prov === "bKash"
+                            ? "linear-gradient(135deg, #e2136e, #b80053)"
+                            : prov === "Nagad"
+                            ? "linear-gradient(135deg, #f7941d, #d03027)"
+                            : prov === "Rocket"
+                            ? "linear-gradient(135deg, #8c3686, #5c246e)"
+                            : "#2a14b4",
+                      }}
+                    >
+                      {prov === "Bank" ? (
+                        <span className="material-symbols-outlined text-[12px]">account_balance</span>
+                      ) : (
+                        prov.charAt(0)
+                      )}
+                    </div>
+                    <span className="font-body-sm text-body-sm truncate">{prov}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Recipient Input Box */}
-            <div className="space-y-space-xs">
-              <label
-                className="font-label-md text-label-md text-on-surface-variant font-medium"
-                htmlFor="recipient-phone"
-              >
-                Recipient Account / Mobile
-              </label>
-              <div className="relative flex items-center rounded-lg bg-surface-container-low focus-within:bg-surface-container-lowest transition-colors px-space-sm h-14">
-                <div className="flex items-center gap-space-xs text-on-surface-variant pl-1 pr-space-xs">
-                  <span className="material-symbols-outlined text-[20px] text-primary">person_check</span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label
+                  className="font-label-md text-label-md text-on-surface-variant font-medium"
+                  htmlFor="recipient-phone"
+                >
+                  Recipient Account / Mobile
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsContactsModalOpen(true)}
+                  className="text-primary text-xs font-semibold hover:underline flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[16px]">contacts</span>
+                  Phone Contacts ({PHONE_CONTACTS.length})
+                </button>
+              </div>
+
+              <div className="relative flex items-center rounded-xl bg-surface-container-low focus-within:bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary/30 transition-all px-3 h-14 border border-outline-variant/30">
+                <div className="flex items-center gap-2 text-on-surface-variant pl-1 pr-2">
+                  <span className="material-symbols-outlined text-[20px] text-primary">person_search</span>
                 </div>
                 <div className="flex-1 flex flex-col justify-center min-w-0">
                   <input
                     className="w-full bg-transparent font-title-md text-title-md text-on-surface font-semibold focus:outline-none placeholder:text-on-surface-variant/40"
                     id="recipient-phone"
-                    placeholder="01XXXXXXXXX"
-                    type="text"
+                    placeholder="Enter 01XXXXXXXXX or pick contact"
+                    type="tel"
                     value={recipientPhone}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9]/g, "");
-                      setRecipientPhone(val);
-                      if (val.length === 11) {
-                        setRecipientName(`Recipient (${val.slice(-4)})`);
-                      }
-                    }}
+                    onChange={(e) => handlePhoneInputChange(e.target.value)}
                   />
-                  <span className="font-body-sm text-body-sm text-primary font-medium truncate leading-none">
-                    {recipientName}
-                  </span>
+                  {recipientName && (
+                    <span className="font-body-sm text-xs text-primary font-medium truncate leading-tight">
+                      {recipientName}
+                    </span>
+                  )}
                 </div>
+
+                {/* Clear Button */}
+                {recipientPhone && (
+                  <button
+                    type="button"
+                    onClick={handleClearRecipient}
+                    title="Clear number"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors shrink-0 mr-1"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                )}
+
+                {/* Open Contacts Picker Button */}
                 <button
                   aria-label="Open Contacts Picker"
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-primary-container hover:bg-surface-container transition-colors shrink-0"
+                  className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary hover:bg-primary-container/20 active:scale-95 transition-all shrink-0"
                   type="button"
-                  onClick={() => {
-                    setRecipientPhone("01912345678");
-                    setRecipientName("Rakib Hasan (Nagad Personal)");
-                  }}
+                  onClick={() => setIsContactsModalOpen(true)}
+                  title="Choose from Contacts"
                 >
-                  <span className="material-symbols-outlined text-[22px]">contacts</span>
+                  <span className="material-symbols-outlined text-[20px]">contacts</span>
                 </button>
+              </div>
+
+              {/* Quick Contact Chips (bKash style) */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setIsContactsModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-container text-white text-xs font-bold shrink-0 shadow-xs hover:opacity-90 active:scale-95 transition-all"
+                >
+                  <span className="material-symbols-outlined text-[15px]">add</span>
+                  All Contacts
+                </button>
+                {PHONE_CONTACTS.slice(0, 4).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => handleSelectContact(c)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 border transition-all ${
+                      recipientPhone === c.phone
+                        ? "bg-secondary-container text-on-secondary-container border-primary font-bold shadow-xs"
+                        : "bg-surface-container-low text-on-surface border-outline-variant/30 hover:bg-surface-container"
+                    }`}
+                  >
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${c.avatarBg}`}>
+                      {c.name.charAt(0)}
+                    </span>
+                    <span>{c.name.split(" ")[0]}</span>
+                    <span className="text-[10px] text-outline">({c.provider})</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -411,7 +538,7 @@ export default function MobileTransferHub() {
                 ৳
               </span>
               <input
-                className="w-48 text-center font-currency-display text-currency-display text-on-surface bg-transparent focus:outline-none font-bold"
+                className="font-currency-display text-currency-display text-on-surface font-bold text-center w-full max-w-[280px] bg-transparent focus:outline-none"
                 id="transfer-amount"
                 inputMode="numeric"
                 type="text"
@@ -419,94 +546,74 @@ export default function MobileTransferHub() {
                 onChange={(e) => handleAmountChange(e.target.value)}
               />
             </div>
-            {/* Preset Chips */}
-            <div className="flex items-center justify-between gap-space-xs pt-1">
-              {["500", "1000", "2000", "5000", "Max"].map((chipVal) => {
-                const isSelected = activeChip === chipVal;
+
+            {/* Quick Amount Suggestion Chips */}
+            <div className="grid grid-cols-5 gap-space-xs">
+              {["500", "1,000", "2,000", "5,000", "Max"].map((chip) => {
+                const rawVal = chip.replace(/,/g, "");
+                const isSelected = activeChip === rawVal || activeChip === chip;
                 return (
                   <button
-                    key={chipVal}
-                    type="button"
-                    onClick={() => handleChipClick(chipVal)}
-                    className={`amount-chip flex-1 py-1.5 px-space-xs rounded-lg font-body-sm text-body-sm font-semibold transition-all ${
+                    key={chip}
+                    onClick={() => handleChipClick(chip)}
+                    className={`h-9 rounded-lg font-label-md text-label-md font-semibold transition-all ${
                       isSelected
                         ? "bg-primary-container text-on-primary shadow-sm"
-                        : "bg-surface-container-low hover:bg-surface-container text-on-surface"
+                        : "bg-surface-container text-on-surface hover:bg-surface-container-high"
                     }`}
+                    type="button"
                   >
-                    {chipVal === "Max" ? "Max" : `৳${parseInt(chipVal).toLocaleString()}`}
+                    {chip === "Max" ? "Max" : `৳${chip}`}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Live Interoperability Fee & Cost Breakdown Card */}
-          <div className="bg-surface-container-low rounded-xl p-space-md space-y-space-sm">
-            <div className="flex items-center justify-between pb-space-2xs">
+          {/* Live Cost Breakdown */}
+          <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-sm text-on-surface">
+            <div className="flex items-center justify-between border-b border-outline-variant/30 pb-space-xs">
               <div className="flex items-center gap-space-xs">
-                <span className="material-symbols-outlined text-[18px] text-tertiary-container">
-                  verified_user
-                </span>
-                <span className="font-title-md text-title-md text-on-surface font-semibold">
-                  Live Cost Breakdown
-                </span>
+                <span className="material-symbols-outlined text-tertiary text-[18px]">verified</span>
+                <span className="font-title-md text-title-md font-semibold">Live Cost Breakdown</span>
               </div>
-              <span className="font-label-md text-label-md px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-medium">
-                Transparent Rail
-              </span>
+              <span className="font-label-md text-label-md text-tertiary font-medium">Transparent Rail</span>
             </div>
-            <div className="space-y-space-xs text-on-surface-variant font-body-md text-body-md">
-              <div className="flex items-center justify-between">
+
+            <div className="space-y-space-xs pt-space-2xs text-body-sm">
+              <div className="flex justify-between text-on-surface-variant font-body-sm">
                 <span>Transfer Amount</span>
-                <span className="font-title-md text-title-md text-on-surface font-medium" id="display-base-amount">
-                  ৳{numericAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </span>
+                <span className="font-medium text-on-surface font-mono">৳{numericAmount.toLocaleString()}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between text-on-surface-variant font-body-sm">
                 <span className="flex items-center gap-1">
                   Cross-Platform Fee (1%)
-                  <span
-                    className="material-symbols-outlined text-[14px] text-on-surface-variant"
-                    title="Standard Inter-MFS Rail Fee"
-                  >
-                    info
-                  </span>
+                  <span className="material-symbols-outlined text-[14px] text-outline">info</span>
                 </span>
-                <span className="text-on-surface font-medium" id="display-fee-amount">
-                  ৳{fee.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </span>
+                <span className="font-medium text-on-surface font-mono">৳{fee.toFixed(2)}</span>
               </div>
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-tertiary-container font-medium flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                  Recipient gets in {destinationProvider}
+              <div className="flex justify-between text-tertiary font-body-sm font-semibold">
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px]">check_circle</span> Recipient gets in{" "}
+                  {destinationProvider}
                 </span>
-                <span
-                  className="font-title-md text-title-md text-tertiary-container font-bold"
-                  id="display-recipient-amount"
-                >
-                  ৳{numericAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </span>
+                <span className="font-mono">৳{numericAmount.toLocaleString()}</span>
               </div>
             </div>
-            <div className="h-0.5 bg-surface-container-highest my-space-xs"></div>
-            <div className="flex items-center justify-between pt-space-2xs">
-              <div className="flex flex-col">
-                <span className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">
+
+            {/* Total Deducted Hero */}
+            <div className="mt-space-sm pt-space-sm border-t border-dashed border-outline-variant flex items-baseline justify-between">
+              <div>
+                <span className="font-label-md text-label-md uppercase tracking-wider font-semibold text-on-surface-variant block">
                   Total Deducted from {sourceProvider}
                 </span>
-                <span className="font-body-sm text-body-sm text-on-surface-variant">
-                  Includes regulatory interoperability surcharge
-                </span>
+                <span className="text-[11px] text-outline">Includes regulatory interoperability surcharge</span>
               </div>
-              <span
-                className="font-headline-md text-headline-md text-primary font-bold"
-                id="display-total-amount"
-              >
+              <span className="font-headline-md text-headline-md text-primary font-bold font-mono">
                 ৳{total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
             </div>
+
             {/* Compliance & Security Badge */}
             <div className="mt-space-sm p-space-sm rounded-lg bg-surface-container flex items-center gap-space-sm text-on-surface">
               <span className="material-symbols-outlined text-tertiary text-[20px] shrink-0">lock</span>
@@ -554,6 +661,140 @@ export default function MobileTransferHub() {
           </div>
         </div>
       </div>
+
+      {/* Phone Contacts Picker Modal (bKash-style full contact book) */}
+      {isContactsModalOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-surface rounded-[1.75rem] border border-outline-variant/40 shadow-2xl w-full max-w-lg p-5 sm:p-6 relative max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/30">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-primary-container text-white flex items-center justify-center shadow-sm">
+                  <span className="material-symbols-outlined text-[20px]">contacts</span>
+                </div>
+                <div>
+                  <h3 className="font-headline-md text-headline-md font-bold text-on-surface">Select Recipient</h3>
+                  <p className="font-body-sm text-xs text-on-surface-variant">Choose from saved contacts or enter custom number</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsContactsModalOpen(false)}
+                className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="pt-4 pb-2">
+              <div className="relative flex items-center rounded-xl bg-surface-container-lowest border border-outline-variant/40 px-3.5 h-12 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+                <span className="material-symbols-outlined text-[20px] text-outline mr-2">search</span>
+                <input
+                  type="text"
+                  placeholder="Search name or mobile number (e.g. 017...)"
+                  value={contactSearchQuery}
+                  onChange={(e) => setContactSearchQuery(e.target.value)}
+                  className="w-full bg-transparent font-body-md text-body-md text-on-surface focus:outline-none placeholder:text-outline"
+                  autoFocus
+                />
+                {contactSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setContactSearchQuery("")}
+                    className="text-outline hover:text-on-surface"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">cancel</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Filter Chips */}
+            <div className="flex gap-1.5 overflow-x-auto pb-3 pt-1 no-scrollbar">
+              {(["All", "bKash", "Nagad", "Rocket", "Bank"] as const).map((prov) => (
+                <button
+                  key={prov}
+                  type="button"
+                  onClick={() => setContactFilterProvider(prov)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                    contactFilterProvider === prov
+                      ? "bg-primary text-white shadow-xs"
+                      : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  {prov}
+                </button>
+              ))}
+            </div>
+
+            {/* Contacts Scrollable List */}
+            <div className="overflow-y-auto flex-1 divide-y divide-outline-variant/20 -mx-1 pr-1">
+              {/* Option to send to typed query if digits entered */}
+              {contactSearchQuery.trim().length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handlePhoneInputChange(contactSearchQuery);
+                    setIsContactsModalOpen(false);
+                  }}
+                  className="w-full p-3 my-1 rounded-xl bg-primary-container/10 border border-primary/30 flex items-center gap-3 text-left hover:bg-primary-container/20 transition-all"
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary-container text-white flex items-center justify-center font-bold shrink-0">
+                    <span className="material-symbols-outlined text-[20px]">add_call</span>
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="font-title-md text-title-md font-bold text-primary truncate">
+                      Send to "{contactSearchQuery}"
+                    </span>
+                    <span className="font-body-sm text-xs text-on-surface-variant">
+                      Tap to send money to this custom number
+                    </span>
+                  </div>
+                  <span className="material-symbols-outlined text-primary text-[20px]">arrow_forward</span>
+                </button>
+              )}
+
+              {filteredContactsList.length === 0 ? (
+                <div className="py-12 text-center text-on-surface-variant flex flex-col items-center gap-2">
+                  <span className="material-symbols-outlined text-[32px] text-outline">search_off</span>
+                  <span className="font-semibold text-on-surface">No contacts found</span>
+                  <span className="text-xs">Try searching by name or enter a mobile number directly above.</span>
+                </div>
+              ) : (
+                filteredContactsList.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => handleSelectContact(c)}
+                    className="w-full p-3 rounded-xl flex items-center justify-between hover:bg-surface-container-low transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-base shrink-0 shadow-xs ${c.avatarBg}`}>
+                        {c.name.charAt(0)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-title-md text-body-lg text-on-surface font-semibold truncate">
+                          {c.name}
+                        </span>
+                        <span className="font-body-sm text-xs text-on-surface-variant font-mono">
+                          {c.phone}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end shrink-0 pl-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface">
+                        {c.provider}
+                      </span>
+                      <span className="text-[10px] text-outline mt-0.5">{c.accountType}</span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

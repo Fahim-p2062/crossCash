@@ -101,8 +101,13 @@ export default function Login() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-6 bg-background">
       <div className="w-full max-w-[448px] flex flex-col justify-center">
-        <div className="text-center mb-10">
-          <h1 className="font-headline-xl text-[36px] font-bold text-primary mb-2">CrossCash</h1>
+        <div className="text-center mb-8 flex flex-col items-center">
+          <img
+            src="/logo.png"
+            alt="CrossCash Logo"
+            className="w-20 h-20 rounded-2xl object-cover shadow-lg mb-3 ring-2 ring-primary/20"
+          />
+          <h1 className="font-headline-xl text-[36px] font-bold text-primary mb-1">CrossCash</h1>
           <p className="font-body-md text-on-surface-variant">Log in to your account</p>
         </div>
 

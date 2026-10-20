@@ -16,11 +16,11 @@ export default function Sidebar() {
   const initial = displayName.charAt(0).toUpperCase();
 
   const navItems = [
-    { href: "/", label: t("dashboard"), icon: "dashboard" },
-    { href: "/send-money", label: "Transfer Hub", icon: "swap_horiz" },
-    { href: "/transactions", label: t("transactions"), icon: "receipt_long" },
-    { href: "/linked-wallets", label: t("linkedWallets"), icon: "account_balance" },
-    { href: "/security-settings", label: t("securitySettings"), icon: "shield" },
+    { href: "/", label: "Dashboard", icon: "home" },
+    { href: "/send-money", label: "Transfer", icon: "swap_horiz" },
+    { href: "/linked-wallets", label: "Wallets", icon: "account_balance_wallet" },
+    { href: "/transactions", label: "Activity", icon: "receipt_long" },
+    { href: "/security-settings", label: "Security", icon: "verified_user" },
   ];
 
   const handleLogout = () => {
@@ -31,10 +31,12 @@ export default function Sidebar() {
   return (
     <aside className="hidden md:flex h-full w-72 lg:w-80 rounded-r-2xl bg-surface-container-low/95 backdrop-blur-xl border-r border-outline-variant/30 shadow-lg flex-col p-6 fixed inset-y-0 left-0 z-[60]">
       {/* Brand Header */}
-      <div className="flex items-center gap-3 pb-6 border-b border-outline-variant/30">
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-container to-primary text-white flex items-center justify-center font-bold text-base shadow-md">
-          <span className="material-symbols-outlined text-[22px]">currency_exchange</span>
-        </div>
+      <Link href="/" className="flex items-center gap-3 pb-5 border-b border-outline-variant/30 group">
+        <img
+          src="/logo.png"
+          alt="CrossCash"
+          className="h-10 w-10 rounded-xl object-cover shadow-sm ring-1 ring-outline-variant/20 group-hover:scale-105 transition-transform"
+        />
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">
             <span className="font-title-lg text-title-lg text-primary font-bold tracking-tight">CrossCash</span>
@@ -44,7 +46,7 @@ export default function Sidebar() {
           </div>
           <span className="font-label-sm text-label-sm text-on-surface-variant font-medium">Interoperable Portal</span>
         </div>
-      </div>
+      </Link>
 
       {/* Profile Card */}
       <div className="flex items-center gap-3.5 my-5 p-3 rounded-xl bg-surface-container-lowest/80 border border-outline-variant/20 shadow-xs">

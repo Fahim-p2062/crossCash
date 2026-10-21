@@ -49,6 +49,7 @@ export default function TopAppBar({ subtitle }: TopAppBarProps) {
     if (pathname.startsWith("/linked-wallets")) return "Wallets Vault";
     if (pathname.startsWith("/transactions")) return "Activity History";
     if (pathname.startsWith("/security-settings")) return "Security & Access";
+    if (pathname.startsWith("/profile")) return "MNC Profile";
     return "Portal";
   };
 
@@ -103,12 +104,16 @@ export default function TopAppBar({ subtitle }: TopAppBarProps) {
             {isProfileOpen && (
               <div className="absolute right-0 top-12 w-72 rounded-2xl bg-surface-container-lowest shadow-2xl border border-outline-variant/30 py-3 px-4 z-50 flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-150">
                 {/* User Info Header */}
-                <div className="flex items-center gap-3 pb-3 border-b border-outline-variant/30">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-container to-secondary flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm">
+                <Link
+                  href="/profile"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-3 pb-3 border-b border-outline-variant/30 hover:bg-surface-container-low/60 -mx-1 px-1 rounded-xl transition-colors group"
+                >
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-container to-secondary flex items-center justify-center text-white font-bold text-base shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                     {initial}
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-title-md text-title-md text-on-surface font-bold truncate">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="font-title-md text-title-md text-on-surface font-bold truncate group-hover:text-primary transition-colors">
                       {displayName}
                     </span>
                     <span className="font-body-sm text-body-sm text-on-surface-variant truncate">
@@ -119,10 +124,21 @@ export default function TopAppBar({ subtitle }: TopAppBarProps) {
                       Verified Citizen
                     </span>
                   </div>
-                </div>
+                  <span className="material-symbols-outlined text-outline text-[18px] group-hover:translate-x-0.5 transition-transform">
+                    chevron_right
+                  </span>
+                </Link>
 
                 {/* Quick Navigation Links */}
                 <div className="flex flex-col gap-1 py-1">
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl text-primary font-semibold hover:bg-surface-container transition-colors font-body-md text-body-md"
+                  >
+                    <span className="material-symbols-outlined text-[20px] text-primary">badge</span>
+                    <span>My Profile & MNC Settings</span>
+                  </Link>
                   <Link
                     href="/security-settings"
                     onClick={() => setIsProfileOpen(false)}

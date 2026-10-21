@@ -5,11 +5,40 @@ export interface Wallet {
   balance: number;
 }
 
+export interface UserProfile {
+  avatarUrl?: string;
+  corporateId?: string;
+  dob?: string;
+  gender?: string;
+  nid?: string;
+  tin?: string;
+  employer?: string;
+  employerShort?: string;
+  employerSubtitle?: string;
+  corporateEmail?: string;
+  employeeId?: string;
+  workstation?: string;
+  designation?: string;
+  department?: string;
+  officeAddress?: string;
+  corporateDirectLine?: string;
+  residentialAddress?: string;
+  permanentAddressMatches?: boolean;
+  emergencyContactName?: string;
+  emergencyContactRelation?: string;
+  emergencyContactPhone?: string;
+  salaryBank?: string;
+  salaryAccount?: string;
+  allowanceWallet?: string;
+  completionPercent?: number;
+}
+
 export interface User {
   _id: string;
   name: string;
   phone: string;
   wallets?: Wallet[];
+  profile?: UserProfile;
 }
 
 export interface AuthResponse {

@@ -48,9 +48,12 @@ export default function Sidebar() {
       </Link>
 
       {/* Profile Card */}
-      <div className="flex items-center gap-3.5 my-5 p-3 rounded-xl bg-surface-container-lowest/80 border border-outline-variant/20 shadow-xs">
+      <Link
+        href="/profile"
+        className="flex items-center gap-3.5 my-5 p-3 rounded-xl bg-surface-container-lowest/80 border border-outline-variant/20 shadow-xs hover:border-primary/40 hover:bg-surface-container-lowest transition-all group"
+      >
         <div className="relative">
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-container to-secondary flex items-center justify-center text-white font-bold text-base shadow-sm">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-container to-secondary flex items-center justify-center text-white font-bold text-base shadow-sm group-hover:scale-105 transition-transform">
             {initial}
           </div>
           <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-tertiary-container text-on-tertiary flex items-center justify-center ring-2 ring-surface text-[9px] font-bold">
@@ -59,9 +62,12 @@ export default function Sidebar() {
         </div>
         <div className="overflow-hidden flex-1">
           <div className="flex items-center justify-between">
-            <h2 className="font-title-md text-title-md text-on-surface font-bold truncate">
+            <h2 className="font-title-md text-title-md text-on-surface font-bold truncate group-hover:text-primary transition-colors">
               {displayName}
             </h2>
+            <span className="material-symbols-outlined text-[16px] text-outline opacity-0 group-hover:opacity-100 transition-opacity">
+              edit
+            </span>
           </div>
           <div className="font-body-sm text-body-sm text-on-surface-variant truncate">
             ID: {displayPhone}
@@ -70,10 +76,10 @@ export default function Sidebar() {
             <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               verified
             </span>
-            Tier 2 KYC Verified
+            Tier 3 MNC Citizen
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 flex flex-col gap-1.5 overflow-y-auto pr-1">

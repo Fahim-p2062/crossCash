@@ -58,6 +58,67 @@ router.get('/lookup/:phone', async (req, res, next) => {
   }
 });
 
+// GET /api/user/profile (Fetch authenticated user's MNC profile details)
+router.get('/profile', async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id).select('-pin');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({
+      _id: user._id,
+      id: user._id,
+      name: user.name,
+      phone: user.phone,
+      profile: user.profile || {}
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /api/user/profile (Update authenticated user's MNC profile details)
+router.put('/profile', async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { name, profile } = req.body;
+    if (name && typeof name === 'string' && name.trim()) {
+      user.name = name.trim();
+    }
+
+    if (profile && typeof profile === 'object') {
+      const currentProfile = user.profile && typeof user.profile.toObject === 'function'
+        ? user.profile.toObject()
+        : (user.profile || {});
+
+      user.profile = {
+        ...currentProfile,
+        ...profile
+      };
+      user.markModified('profile');
+    }
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        _id: user._id,
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        profile: user.profile
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/user/:userId/balance
 router.get('/:userId/balance', async (req, res, next) => {
   try {

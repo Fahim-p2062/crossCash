@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -66,8 +67,9 @@ function SuccessContent() {
               <div className="text-right">
                 <div className="font-label-md font-bold text-on-surface">{name}</div>
                 <div className="font-label-sm text-on-surface-variant">{phone}</div>
-                <div className="inline-flex items-center gap-1 text-[#2e7d32] font-label-sm mt-1">
-                  <span className="w-2 h-2 rounded-full bg-[#2e7d32]"></span> {toProvider}
+                <div className="inline-flex items-center gap-1.5 text-on-surface font-label-sm mt-1">
+                  <WalletLogo provider={toProvider} size="xs" />
+                  <span className="font-bold">{toProvider}</span>
                 </div>
               </div>
             </div>
@@ -75,7 +77,10 @@ function SuccessContent() {
             <div className="flex justify-between items-start pt-4 border-t border-outline-variant/20">
               <span className="font-label-md text-on-surface-variant">From</span>
               <div className="text-right">
-                <div className="font-label-md font-bold text-on-surface">Your {fromProvider}</div>
+                <div className="inline-flex items-center gap-1.5 text-on-surface font-label-md font-bold">
+                  <WalletLogo provider={fromProvider} size="xs" />
+                  <span>Your {fromProvider}</span>
+                </div>
                 <div className="inline-flex items-center gap-1 text-primary font-label-sm mt-1">
                   <span className="w-2 h-2 rounded-full bg-primary"></span> CrossCash Interop
                 </div>

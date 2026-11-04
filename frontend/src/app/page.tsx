@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/money";
 import { useLanguage } from "@/lib/language";
 import { BalanceResponse, Transaction, Wallet } from "@/types";
 import MobileDashboard from "./dashboard-mobile";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 interface AddFundsResponse {
   message: string;
@@ -252,8 +253,8 @@ export default function Home() {
                             : "border-outline-variant/40 bg-surface-container hover:bg-surface-variant text-on-surface"
                         }`}
                       >
-                        <span className="w-2 h-2 rounded-full bg-current"></span>
-                        {prov}
+                        <WalletLogo provider={prov} size="xs" />
+                        <span>{prov}</span>
                       </button>
                     );
                   })}

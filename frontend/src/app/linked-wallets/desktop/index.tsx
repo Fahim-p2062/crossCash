@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/session";
 import { apiRequest } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 import { BalanceResponse, Wallet } from "@/types";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 export default function DesktopLinkedWallets() {
   const { user } = useAuth();
@@ -128,10 +129,7 @@ export default function DesktopLinkedWallets() {
                 <div className={`absolute -right-8 -top-8 w-32 h-32 ${config.bgGlow} rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500`}></div>
                 <div className="flex justify-between items-start mb-xl relative z-10">
                   <div className="flex items-center gap-md">
-                    <div className="w-14 h-14 bg-surface-card rounded-full flex items-center justify-center shadow-sm relative">
-                      {config.svg}
-                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-success-green rounded-full shadow-sm ring-2 ring-surface-card"></div>
-                    </div>
+                    <WalletLogo provider={wallet.provider} size="lg" />
                     <div>
                       <h3 className="font-headline-md text-headline-md text-on-surface">{wallet.provider}</h3>
                       <p className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-xs">

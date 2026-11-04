@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/session";
 import { useLanguage } from "@/lib/language";
 import { formatMoney } from "@/lib/money";
 import { BalanceResponse, Transaction, Wallet } from "@/types";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 interface MobileDashboardProps {
   balanceData: BalanceResponse | null;
@@ -127,10 +128,10 @@ export default function MobileDashboard({
       </section>
 
       {/* Hero Aggregated Balance Card */}
-      <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary-container via-[#271f85] to-inverse-surface text-on-primary p-space-lg shadow-xl">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#001254] via-[#0A2FB6] to-[#1D4ED8] text-on-primary p-space-lg shadow-xl border border-white/10">
         {/* Ambient organic glow circles */}
-        <div className="pointer-events-none absolute -top-12 -right-12 w-44 h-44 rounded-full bg-surface-tint/20 blur-2xl"></div>
-        <div className="pointer-events-none absolute -bottom-16 -left-12 w-40 h-40 rounded-full bg-tertiary-container/30 blur-2xl"></div>
+        <div className="pointer-events-none absolute -top-12 -right-12 w-52 h-52 rounded-full bg-[#38BDF8]/25 blur-3xl"></div>
+        <div className="pointer-events-none absolute -bottom-16 -left-12 w-48 h-48 rounded-full bg-[#60A5FA]/20 blur-3xl"></div>
 
         <div className="relative z-10 flex flex-col gap-space-md">
           {/* Balance Header & Privacy Toggle */}
@@ -300,21 +301,35 @@ export default function MobileDashboard({
           ) : balanceData?.wallets && balanceData.wallets.length > 0 ? (
             balanceData.wallets.map((wallet, idx) => {
               const style = getProviderStyle(wallet.provider);
+              const cardBorder =
+                wallet.provider === "bKash"
+                  ? "border-pink-200 hover:border-pink-400"
+                  : wallet.provider === "Nagad"
+                  ? "border-orange-200 hover:border-orange-400"
+                  : wallet.provider === "Rocket"
+                  ? "border-purple-200 hover:border-purple-400"
+                  : "border-blue-200 hover:border-blue-400";
+
+              const cardGlow =
+                wallet.provider === "bKash"
+                  ? "from-pink-500/5 to-transparent"
+                  : wallet.provider === "Nagad"
+                  ? "from-orange-500/5 to-transparent"
+                  : wallet.provider === "Rocket"
+                  ? "from-purple-500/5 to-transparent"
+                  : "from-blue-500/5 to-transparent";
+
               return (
                 <div
                   key={wallet._id || `${wallet.provider}-${idx}`}
-                  className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden"
+                  className={`flex-shrink-0 w-64 lg:w-auto rounded-2xl bg-gradient-to-b ${cardGlow} bg-surface-container-lowest p-space-md shadow-sm hover:shadow-md transition-all border ${cardBorder} flex flex-col justify-between gap-space-md relative overflow-hidden group`}
                 >
                   <div className={`absolute top-0 left-0 right-0 h-1.5 ${style.barColor}`}></div>
                   <div className="flex items-start justify-between pt-1">
                     <div className="flex items-center gap-space-sm">
-                      <div
-                        className={`w-10 h-10 rounded-lg ${style.iconBg} flex items-center justify-center font-title-md text-body-lg font-bold ${style.iconColor}`}
-                      >
-                        {style.initial}
-                      </div>
+                      <WalletLogo provider={wallet.provider} size="md" />
                       <div className="flex flex-col">
-                        <span className="font-title-md text-title-md text-on-surface leading-tight font-semibold">
+                        <span className="font-title-md text-title-md text-on-surface leading-tight font-bold">
                           {wallet.provider}
                         </span>
                         <span className="font-body-sm text-body-sm text-on-surface-variant font-mono">
@@ -323,25 +338,25 @@ export default function MobileDashboard({
                       </div>
                     </div>
                     {idx === 0 ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-label-md text-[10px] font-bold tracking-wider uppercase">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label-md text-[10px] font-bold tracking-wider uppercase">
                         PRIMARY
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-md text-[10px] font-semibold uppercase">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-[10px] font-semibold uppercase">
                         {style.tag}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-end justify-between pt-2">
+                  <div className="flex items-end justify-between pt-2 border-t border-outline-variant/15">
                     <div className="flex flex-col">
-                      <span className="font-body-sm text-body-sm text-on-surface-variant">Available</span>
-                      <span className="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">
+                      <span className="font-body-sm text-body-sm text-on-surface-variant text-xs">Available</span>
+                      <span className="font-headline-md text-headline-md text-on-surface font-extrabold tracking-tight">
                         {isBalanceHidden ? "••••••" : displayMoney(wallet.balance)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-surface-container-low px-2 py-1 rounded-full">
-                      <span className="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></span>
-                      <span className="font-label-md text-[11px] text-tertiary font-semibold">Active</span>
+                    <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/60 px-2 py-1 rounded-full">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="font-label-md text-[11px] text-emerald-700 font-bold">Active</span>
                     </div>
                   </div>
                 </div>

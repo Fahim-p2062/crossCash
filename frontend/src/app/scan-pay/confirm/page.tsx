@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiRequest, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/session";
 import { BalanceResponse } from "@/types";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 interface QRPayResponse {
   message: string;
@@ -282,14 +283,17 @@ function ConfirmQRForm() {
                 <button
                   key={w.provider}
                   onClick={() => setFromWallet(w.provider)}
-                  className={`flex-1 min-w-[90px] px-3 py-2 rounded-xl border-2 transition-colors text-sm font-medium ${
+                  className={`flex-1 min-w-[100px] px-3 py-2 rounded-xl border-2 transition-colors text-sm font-medium flex items-center gap-2 ${
                     fromWallet === w.provider
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-outline-variant/40 text-on-surface-variant"
+                      ? "border-primary bg-primary/10 text-primary shadow-xs"
+                      : "border-outline-variant/40 text-on-surface-variant hover:bg-surface-container"
                   }`}
                 >
-                  <div>{w.provider}</div>
-                  <div className="text-xs opacity-70">৳{w.balance.toFixed(0)}</div>
+                  <WalletLogo provider={w.provider} size="sm" />
+                  <div className="text-left">
+                    <div className="font-bold text-xs">{w.provider}</div>
+                    <div className="text-[11px] opacity-80">৳{w.balance.toFixed(0)}</div>
+                  </div>
                 </button>
               ))}
             </div>

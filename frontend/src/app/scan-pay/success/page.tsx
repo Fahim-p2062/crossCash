@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 function QRSuccessContent() {
   const searchParams = useSearchParams();
@@ -74,7 +75,10 @@ function QRSuccessContent() {
             <div className="flex justify-between items-start pt-4 border-t border-outline-variant/20">
               <span className="text-on-surface-variant text-sm">From</span>
               <div className="text-right">
-                <div className="font-bold text-on-surface text-sm">Your {fromWallet}</div>
+                <div className="inline-flex items-center gap-1.5 text-on-surface text-sm font-bold">
+                  <WalletLogo provider={fromWallet} size="xs" />
+                  <span>Your {fromWallet}</span>
+                </div>
                 <div className="inline-flex items-center gap-1 text-primary text-xs mt-1">
                   <span className="w-2 h-2 rounded-full bg-primary" />
                   CrossCash Interop

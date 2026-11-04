@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 import { BalanceResponse, Wallet } from "@/types";
 import { authorizeTransferWithBiometrics } from "@/lib/webauthn";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 export interface Contact {
   id: string;
@@ -390,12 +391,7 @@ export default function MobileTransferHub() {
               type="button"
             >
               <div className="flex items-center gap-space-sm">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-title-md text-title-md font-bold shadow-xs"
-                  style={{ background: getSourceGradient(sourceProvider) }}
-                >
-                  {getSourceInitials(sourceProvider)}
-                </div>
+                <WalletLogo provider={sourceProvider} size="md" />
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5">
                     <span className="font-title-md text-title-md text-on-surface font-semibold">
@@ -442,12 +438,7 @@ export default function MobileTransferHub() {
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-7 h-7 rounded-md flex items-center justify-center text-white text-xs font-bold"
-                          style={{ background: getSourceGradient(prov) }}
-                        >
-                          {getSourceInitials(prov)}
-                        </div>
+                        <WalletLogo provider={prov} size="sm" />
                         <span className="font-title-md text-body-md text-on-surface font-semibold">{prov}</span>
                       </div>
                       <span className="font-title-md text-body-md font-bold text-on-surface">৳{bal.toLocaleString()}</span>
@@ -483,25 +474,7 @@ export default function MobileTransferHub() {
                     role="tab"
                     type="button"
                   >
-                    <div
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
-                      style={{
-                        background:
-                          prov === "bKash"
-                            ? "linear-gradient(135deg, #e2136e, #b80053)"
-                            : prov === "Nagad"
-                            ? "linear-gradient(135deg, #f7941d, #d03027)"
-                            : prov === "Rocket"
-                            ? "linear-gradient(135deg, #8c3686, #5c246e)"
-                            : "#2a14b4",
-                      }}
-                    >
-                      {prov === "Bank" ? (
-                        <span className="material-symbols-outlined text-[12px]">account_balance</span>
-                      ) : (
-                        prov.charAt(0)
-                      )}
-                    </div>
+                    <WalletLogo provider={prov} size="xs" />
                     <span className="font-body-sm text-body-sm truncate">{prov}</span>
                   </button>
                 );

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/session";
 import { apiRequest } from "@/lib/api";
 import { formatMoney } from "@/lib/money";
 import { BalanceResponse, Wallet } from "@/types";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 export default function MobileLinkedWallets() {
   const { user } = useAuth();
@@ -267,16 +268,7 @@ export default function MobileLinkedWallets() {
                 <div className={`absolute top-0 left-0 right-0 h-1.5 ${config.barColor}`}></div>
                 <div className="flex items-start justify-between pt-1">
                   <div className="flex items-center gap-space-sm">
-                    <div
-                      className={`w-12 h-12 rounded-xl ${config.bgGlow} flex items-center justify-center relative overflow-hidden shrink-0`}
-                    >
-                      <span className={`font-headline-md text-headline-md font-black ${config.textColor}`}>
-                        {config.initial}
-                      </span>
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary">
-                        <span className="material-symbols-outlined text-[10px] font-bold">check</span>
-                      </div>
-                    </div>
+                    <WalletLogo provider={wallet.provider} size="lg" />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-space-xs flex-wrap">
                         <h3 className="font-title-md text-title-md text-on-surface">{wallet.provider}</h3>

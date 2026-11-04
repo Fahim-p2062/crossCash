@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import WalletLogo from "@/components/ui/WalletLogo";
 
 function ConfirmForm() {
   const router = useRouter();
@@ -45,9 +46,7 @@ function ConfirmForm() {
           <div className="font-label-md text-on-surface-variant mb-3">{phone}</div>
           
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container text-primary rounded-full font-label-sm mb-6">
-            <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              account_balance_wallet
-            </span>
+            <WalletLogo provider={toProvider} size="xs" />
             Destination: {toProvider}
           </div>
 
@@ -58,8 +57,8 @@ function ConfirmForm() {
           <div className="space-y-3 pt-4 border-t border-outline-variant/30 text-left">
             <div className="flex justify-between items-center">
               <span className="font-label-md text-on-surface-variant">From Wallet</span>
-              <span className="font-label-md font-bold text-on-surface flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
+              <span className="font-label-md font-bold text-on-surface flex items-center gap-2">
+                <WalletLogo provider={fromProvider} size="xs" />
                 {fromProvider}
               </span>
             </div>

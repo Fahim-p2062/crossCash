@@ -23,35 +23,57 @@ function PinForm() {
   const fromProvider = searchParams.get("fromProvider") || "bKash";
   const amount = searchParams.get("amount") || "0";
 
-  const [expectedPinLength, setExpectedPinLength] = useState<number>(
-    user?.pinLength && user.pinLength >= 4 && user.pinLength <= 6 ? user.pinLength : 4
-  );
+  // Read pinLength immediately from localStorage (synchronous) to avoid
+  // the race condition where useAuth resolves asynchronously and the
+  // useState initializer has already defaulted to 4.
+  const getInitialPinLength = (): number => {
+    try {
+      const raw = localStorage.getItem("crosscash_user");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const len = parsed?.pinLength;
+        if (len && len >= 4 && len <= 6) return len;
+      }
+    } catch {}
+    return 4;
+  };
+
+  const [expectedPinLength, setExpectedPinLength] = useState<number>(getInitialPinLength);
 
   useEffect(() => {
-    // If user already has pinLength in local session, use it immediately
-    if (user?.pinLength && user.pinLength >= 4 && user.pinLength <= 6) {
-      setExpectedPinLength(user.pinLength);
-    }
+    // Determine the sender's phone: prefer useAuth, fall back to localStorage
+    const senderPhone =
+      user?.phone ||
+      (() => {
+        try {
+          const raw = localStorage.getItem("crosscash_user");
+          return raw ? JSON.parse(raw)?.phone : null;
+        } catch {
+          return null;
+        }
+      })();
 
-    // Always fetch authoritative pinLength from backend to guarantee 100% accuracy
-    if (user?.phone) {
-      apiRequest<{ pinLength: number }>(`/api/auth/pin-length/${user.phone}`, { skipAuth: true })
-        .then((data) => {
-          if (data && data.pinLength && data.pinLength >= 4 && data.pinLength <= 6) {
-            setExpectedPinLength(data.pinLength);
-            try {
-              const raw = localStorage.getItem("crosscash_user");
-              if (raw) {
-                const parsed = JSON.parse(raw);
-                parsed.pinLength = data.pinLength;
-                localStorage.setItem("crosscash_user", JSON.stringify(parsed));
-              }
-            } catch {}
-          }
-        })
-        .catch(() => {});
-    }
-  }, [user]);
+    if (!senderPhone) return;
+
+    // Always fetch authoritative pinLength from backend for the SENDER
+    apiRequest<{ pinLength: number }>(`/api/auth/pin-length/${senderPhone}`, { skipAuth: true })
+      .then((data) => {
+        if (data && data.pinLength && data.pinLength >= 4 && data.pinLength <= 6) {
+          setExpectedPinLength(data.pinLength);
+          try {
+            const raw = localStorage.getItem("crosscash_user");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              parsed.pinLength = data.pinLength;
+              localStorage.setItem("crosscash_user", JSON.stringify(parsed));
+            }
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  // Run on mount and whenever the auth user loads
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.phone]);
 
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);

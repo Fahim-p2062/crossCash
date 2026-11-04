@@ -37,6 +37,7 @@ export interface User {
   _id: string;
   name: string;
   phone: string;
+  pinLength?: number;
   wallets?: Wallet[];
   profile?: UserProfile;
 }

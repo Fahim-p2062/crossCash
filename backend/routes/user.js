@@ -70,6 +70,7 @@ router.get('/profile', async (req, res, next) => {
       id: user._id,
       name: user.name,
       phone: user.phone,
+      pinLength: user.pinLength || 4,
       profile: user.profile || {}
     });
   } catch (error) {
@@ -111,6 +112,7 @@ router.put('/profile', async (req, res, next) => {
         id: user._id,
         name: user.name,
         phone: user.phone,
+        pinLength: user.pinLength || 4,
         profile: user.profile
       }
     });
@@ -133,9 +135,27 @@ router.get('/:userId/balance', async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    // Ensure all 3 interoperable payment rails exist for the user
+    const standardProviders = ['bKash', 'Nagad', 'Rocket'];
+    let modified = false;
+    for (const prov of standardProviders) {
+      if (!user.wallets.some(w => w.provider.toLowerCase() === prov.toLowerCase())) {
+        user.wallets.push({
+          provider: prov,
+          identifier: user.phone,
+          balance: 0
+        });
+        modified = true;
+      }
+    }
+    if (modified) {
+      user.markModified('wallets');
+      await user.save();
+    }
     
     // Calculate total balance across all wallets
-    const totalBalance = user.wallets.reduce((acc, wallet) => acc + wallet.balance, 0);
+    const totalBalance = Math.round(user.wallets.reduce((acc, wallet) => acc + (Number(wallet.balance) || 0), 0) * 100) / 100;
     
     res.json({
       totalBalance,
@@ -166,7 +186,7 @@ router.post('/:userId/add-funds', async (req, res, next) => {
     }
 
     const targetProvider = provider || 'bKash';
-    let wallet = user.wallets.find(w => w.provider === targetProvider);
+    let wallet = user.wallets.find(w => w.provider.toLowerCase() === targetProvider.toLowerCase());
 
     if (!wallet) {
       user.wallets.push({
@@ -179,6 +199,7 @@ router.post('/:userId/add-funds', async (req, res, next) => {
       wallet.balance = Math.round((wallet.balance + depositAmount) * 100) / 100;
     }
 
+    user.markModified('wallets');
     await user.save();
 
     // Record an inbound transaction in the ledger
@@ -195,7 +216,7 @@ router.post('/:userId/add-funds', async (req, res, next) => {
     });
     await transaction.save();
 
-    const totalBalance = user.wallets.reduce((acc, w) => acc + w.balance, 0);
+    const totalBalance = Math.round(user.wallets.reduce((acc, w) => acc + (Number(w.balance) || 0), 0) * 100) / 100;
 
     res.json({
       message: `Successfully added ৳${depositAmount.toLocaleString()} to ${targetProvider}`,

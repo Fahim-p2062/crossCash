@@ -106,9 +106,6 @@ export default function DesktopLinkedWallets() {
       <div className="flex items-end justify-between mb-xl">
         <div>
           <h1 className="font-headline-xl text-headline-xl text-on-surface mb-xs tracking-tight">Linked Wallets</h1>
-          <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
-            Manage your connected Mobile Financial Services. Link new accounts to simplify your cross-platform transfers.
-          </p>
         </div>
       </div>
 

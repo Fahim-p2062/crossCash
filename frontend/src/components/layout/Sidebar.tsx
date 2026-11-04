@@ -72,12 +72,6 @@ export default function Sidebar() {
           <div className="font-body-sm text-body-sm text-on-surface-variant truncate">
             ID: {displayPhone}
           </div>
-          <div className="font-label-md text-[11px] text-tertiary font-medium flex items-center gap-1 mt-0.5">
-            <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              verified
-            </span>
-            Tier 3 MNC Citizen
-          </div>
         </div>
       </Link>
 

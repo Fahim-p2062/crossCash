@@ -19,18 +19,54 @@ router.post('/register', validateBody(registerSchema), async (req, res, next) =>
     // Hash PIN before storing
     const hashedPin = await bcrypt.hash(pin, 10);
 
-    // Create new user with their primary wallet
+    // Create new user with their initial primary wallet (0 balance) and empty profile
     const user = new User({
       phone,
       name,
       pin: hashedPin,
+      pinLength: pin.length,
       wallets: [
         {
           provider: provider || 'bKash',
           identifier: phone,
-          balance: 10000 // mock initial balance
-        }
-      ]
+          balance: 0
+        },
+        ...(['bKash', 'Nagad', 'Rocket']
+          .filter(p => p !== (provider || 'bKash'))
+          .map(p => ({
+            provider: p,
+            identifier: phone,
+            balance: 0
+          }))
+        )
+      ],
+      profile: {
+        avatarUrl: '',
+        corporateId: `CC-USER-${phone.slice(-6)}`,
+        dob: '',
+        gender: '',
+        nid: '',
+        tin: '',
+        employer: '',
+        employerShort: '',
+        employerSubtitle: '',
+        corporateEmail: '',
+        employeeId: '',
+        workstation: '',
+        designation: '',
+        department: '',
+        officeAddress: '',
+        corporateDirectLine: '',
+        residentialAddress: '',
+        permanentAddressMatches: true,
+        emergencyContactName: '',
+        emergencyContactRelation: '',
+        emergencyContactPhone: '',
+        salaryBank: '',
+        salaryAccount: '',
+        allowanceWallet: '',
+        completionPercent: 0
+      }
     });
     
     await user.save();
@@ -48,6 +84,7 @@ router.post('/register', validateBody(registerSchema), async (req, res, next) =>
         _id: user._id,
         name: user.name,
         phone: user.phone,
+        pinLength: user.pinLength || pin.length,
         wallets: user.wallets
       }
     });
@@ -91,9 +128,19 @@ router.post('/login', validateBody(loginSchema), async (req, res, next) => {
     }
     
     // Successful login: reset failed attempts counter and lockout
+    let needsSave = false;
     if (user.failedPinAttempts > 0 || user.lockUntil) {
       user.failedPinAttempts = 0;
       user.lockUntil = null;
+      needsSave = true;
+    }
+
+    if (!user.pinLength) {
+      user.pinLength = pin.length;
+      needsSave = true;
+    }
+
+    if (needsSave) {
       await user.save();
     }
 
@@ -110,11 +157,27 @@ router.post('/login', validateBody(loginSchema), async (req, res, next) => {
         _id: user._id,
         name: user.name,
         phone: user.phone,
+        pinLength: user.pinLength || pin.length,
         wallets: user.wallets
       }
     });
   } catch (error) {
     next(error);
+  }
+});
+
+// GET /api/auth/pin-length/:phone
+// Public helper to determine the exact PIN length configured for a phone number
+router.get('/pin-length/:phone', async (req, res, next) => {
+  try {
+    const cleanPhone = (req.params.phone || '').replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 11) {
+      return res.json({ pinLength: 4 });
+    }
+    const user = await User.findOne({ phone: cleanPhone }).select('pinLength');
+    res.json({ pinLength: user ? (user.pinLength || 4) : 4 });
+  } catch (error) {
+    res.json({ pinLength: 4 });
   }
 });
 

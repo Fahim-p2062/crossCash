@@ -20,6 +20,7 @@ export default function Login() {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [lockedError, setLockedError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [expectedPinLength, setExpectedPinLength] = useState<number | null>(null);
 
   useEffect(() => {
     checkBiometricSupport().then((support) => {
@@ -32,6 +33,23 @@ export default function Login() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const cleanPhone = phone.replace(/[^0-9]/g, "");
+    if (cleanPhone.length === 11) {
+      apiRequest<{ pinLength: number }>(`/api/auth/pin-length/${cleanPhone}`, { skipAuth: true })
+        .then((data) => {
+          if (data && data.pinLength) {
+            setExpectedPinLength(data.pinLength);
+          }
+        })
+        .catch(() => {
+          setExpectedPinLength(null);
+        });
+    } else {
+      setExpectedPinLength(null);
+    }
+  }, [phone]);
 
   const handleBiometricLogin = async () => {
     setGeneralError(null);
@@ -58,8 +76,13 @@ export default function Login() {
     setLockedError(null);
     setFieldErrors({});
 
-    if (!phone || pin.length < 4) {
-      setGeneralError("Please enter a valid phone number and at least a 4-digit PIN.");
+    const minRequired = expectedPinLength || 4;
+    if (!phone || pin.length < minRequired) {
+      setGeneralError(
+        expectedPinLength
+          ? `Please enter your ${expectedPinLength}-digit CrossCash PIN.`
+          : "Please enter a valid phone number and PIN (at least 4 digits)."
+      );
       return;
     }
 
@@ -156,15 +179,17 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="font-label-md text-on-surface-variant block mb-2">CrossCash PIN</label>
+            <label className="font-label-md text-on-surface-variant block mb-2">
+              CrossCash PIN {expectedPinLength ? `(${expectedPinLength} digits)` : ""}
+            </label>
             <div className={`bg-surface-container-lowest p-4 rounded-xl border ${
               fieldErrors.pin ? "border-error focus-within:border-error focus-within:ring-error" : "border-outline-variant/40 focus-within:border-primary focus-within:ring-primary"
             } focus-within:ring-1 transition-all`}>
               <input
                 type="password"
-                maxLength={6}
+                maxLength={expectedPinLength || 6}
                 className="w-full bg-transparent border-none font-body-lg text-on-surface focus:ring-0 p-0 placeholder:text-outline-variant outline-none tracking-[0.3em]"
-                placeholder="••••"
+                placeholder={expectedPinLength ? "•".repeat(expectedPinLength) : "••••"}
                 value={pin}
                 onChange={(e) => {
                   setPin(e.target.value);
@@ -183,7 +208,7 @@ export default function Login() {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isLoading || isBiometricLoading || !phone || pin.length < 4}
+              disabled={isLoading || isBiometricLoading || !phone || pin.length < (expectedPinLength || 4)}
               className="w-full bg-primary text-white h-12 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container disabled:opacity-50 transition-colors shadow-sm flex items-center justify-center gap-2"
             >
               {isLoading && (

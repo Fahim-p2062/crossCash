@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const { validateBody, transferSchema } = require('../middleware/validation');
@@ -12,13 +13,35 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
       fromWalletProvider, 
       toWalletProvider, 
       amount,
-      recipientName 
+      recipientName,
+      pin
     } = req.body;
 
     // Derive sender strictly from authenticated token
     const senderId = req.user.id;
-    const sender = await User.findById(senderId);
+    const sender = await User.findById(senderId).select('+pin +failedPinAttempts +lockUntil');
     if (!sender) return res.status(404).json({ error: 'Sender not found' });
+
+    // Verify PIN if provided
+    if (pin) {
+      if (sender.lockUntil && sender.lockUntil > Date.now()) {
+        return res.status(423).json({ error: 'Account is temporarily locked due to failed attempts. Please try again later.' });
+      }
+      const isPinMatch = await bcrypt.compare(pin, sender.pin);
+      if (!isPinMatch) {
+        sender.failedPinAttempts = (sender.failedPinAttempts || 0) + 1;
+        if (sender.failedPinAttempts >= 5) {
+          sender.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+          await sender.save();
+          return res.status(423).json({ error: 'Account is temporarily locked due to multiple incorrect PIN attempts.' });
+        }
+        await sender.save();
+        return res.status(400).json({ error: 'Incorrect PIN. Transfer not authorized.' });
+      }
+      if (sender.failedPinAttempts > 0) {
+        sender.failedPinAttempts = 0;
+      }
+    }
     
     // Find sender wallet
     let senderWallet = sender.wallets.find(w => w.provider === fromWalletProvider);
@@ -42,13 +65,15 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
 
     // Deduct from sender wallet
     senderWallet.balance = Math.round((senderWallet.balance - total) * 100) / 100;
-    sender.markModified('wallets');
-    await sender.save();
 
     // Check if recipient is a registered CrossCash user
-    const recipient = (sender.phone === recipientPhone)
+    const cleanRecipientPhone = recipientPhone.replace(/[^0-9]/g, '');
+    const cleanSenderPhone = sender.phone.replace(/[^0-9]/g, '');
+    const isSelfTransfer = (cleanSenderPhone === cleanRecipientPhone);
+
+    let recipient = isSelfTransfer
       ? sender
-      : await User.findOne({ phone: recipientPhone });
+      : await User.findOne({ phone: cleanRecipientPhone });
 
     if (!recipient) {
       return res.status(400).json({
@@ -56,19 +81,28 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
       });
     }
 
-    const resolvedRecipientName = recipient.name;
-    let recipientWallet = recipient.wallets.find(w => w.provider === toWalletProvider);
+    const resolvedRecipientName = isSelfTransfer ? `${sender.name} (Self Swap)` : recipient.name;
+    let recipientWallet = recipient.wallets.find(w => w.provider.toLowerCase() === toWalletProvider.toLowerCase());
     if (!recipientWallet) {
       recipient.wallets.push({
         provider: toWalletProvider,
-        identifier: recipientPhone,
+        identifier: cleanRecipientPhone,
         balance: amount
       });
+      recipientWallet = recipient.wallets[recipient.wallets.length - 1];
     } else {
       recipientWallet.balance = Math.round((recipientWallet.balance + amount) * 100) / 100;
     }
-    recipient.markModified('wallets');
-    await recipient.save();
+
+    if (isSelfTransfer) {
+      sender.markModified('wallets');
+      await sender.save();
+    } else {
+      sender.markModified('wallets');
+      await sender.save();
+      recipient.markModified('wallets');
+      await recipient.save();
+    }
 
     // Save transaction ledger in MongoDB
     const transaction = new Transaction({
@@ -84,11 +118,15 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
     });
     
     await transaction.save();
+
+    const senderTotalBalance = Math.round(sender.wallets.reduce((acc, w) => acc + (Number(w.balance) || 0), 0) * 100) / 100;
     
     res.status(200).json({ 
       message: 'Transfer successful', 
       transaction,
-      senderWalletBalance: senderWallet.balance
+      senderWalletBalance: senderWallet.balance,
+      senderTotalBalance,
+      wallets: sender.wallets
     });
   } catch (error) {
     next(error);

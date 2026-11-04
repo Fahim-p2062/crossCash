@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiRequest, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/session";
 import { Transaction } from "@/types";
 import { authorizeTransferWithBiometrics } from "@/lib/webauthn";
 
@@ -14,6 +15,7 @@ interface TransferResponse {
 
 function PinForm() {
   const router = useRouter();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const phone = searchParams.get("phone") || "";
   const name = searchParams.get("name") || "Recipient";
@@ -21,12 +23,16 @@ function PinForm() {
   const fromProvider = searchParams.get("fromProvider") || "bKash";
   const amount = searchParams.get("amount") || "0";
 
+  const expectedPinLength = (user?.pinLength && user.pinLength >= 4 && user.pinLength <= 6)
+    ? user.pinLength
+    : 4;
+
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleKeyClick = (num: string) => {
-    if (pin.length < 5) {
+    if (pin.length < expectedPinLength) {
       setPin(pin + num);
       setError(null);
     }
@@ -38,7 +44,7 @@ function PinForm() {
   };
 
   const handleSubmit = async () => {
-    if (pin.length !== 5 || isLoading) return;
+    if (pin.length !== expectedPinLength || isLoading) return;
 
     setIsLoading(true);
     setError(null);
@@ -130,11 +136,13 @@ function PinForm() {
           <div className="text-xs font-semibold text-white/70 uppercase tracking-widest mb-1">
             Transferring ৳{Number(amount).toLocaleString()} from {fromProvider} to {toProvider}
           </div>
-          <div className="font-label-md text-white/90 mb-5">Enter your 5-digit CrossCash PIN</div>
+          <div className="font-label-md text-white/90 mb-5">
+            Enter your {expectedPinLength}-digit CrossCash PIN
+          </div>
 
           {/* PIN Dots */}
           <div className="flex justify-center gap-4 mb-4">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(expectedPinLength)].map((_, i) => (
               <div
                 key={i}
                 className={`w-4 h-4 rounded-full transition-all duration-200 ${
@@ -195,7 +203,7 @@ function PinForm() {
       <div className="mt-auto pt-4 pb-safe">
         <button
           onClick={handleSubmit}
-          disabled={pin.length !== 5 || isLoading}
+          disabled={pin.length !== expectedPinLength || isLoading}
           className="w-full bg-white text-primary h-14 rounded-xl font-headline-md text-headline-md font-bold hover:bg-surface-variant disabled:opacity-50 transition-colors shadow-sm flex justify-center items-center gap-2"
         >
           {isLoading ? (

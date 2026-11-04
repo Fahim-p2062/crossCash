@@ -12,7 +12,7 @@ const walletSchema = new mongoose.Schema({
   },
   balance: {
     type: Number,
-    default: 10000, // mock balance for demo purposes
+    default: 0, // default balance is 0 for newly registered accounts
   }
 });
 
@@ -32,6 +32,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     select: false, // Never return PIN by default in queries
+  },
+  pinLength: {
+    type: Number,
+    default: 4,
+    min: 4,
+    max: 6,
   },
   failedPinAttempts: {
     type: Number,
@@ -59,30 +65,30 @@ const userSchema = new mongoose.Schema({
   wallets: [walletSchema],
   profile: {
     avatarUrl: { type: String, default: '' },
-    corporateId: { type: String, default: 'CC-CORP-885053' },
-    dob: { type: String, default: '14 Aug 1994' },
-    gender: { type: String, default: 'Male' },
-    nid: { type: String, default: '1994 2692 8110 0041' },
-    tin: { type: String, default: '4821-9903-XXXX' },
-    employer: { type: String, default: 'Standard Chartered GBS' },
-    employerShort: { type: String, default: 'SCB' },
-    employerSubtitle: { type: String, default: 'Global Business Services Ltd.' },
-    corporateEmail: { type: String, default: 'fahim.zaman@scb.com' },
-    employeeId: { type: String, default: 'SCB-EMP-90241' },
-    workstation: { type: String, default: 'Dhaka HQ' },
-    designation: { type: String, default: 'Senior Financial Systems Architect' },
-    department: { type: String, default: 'Fintech Operations & Real-time Settlements' },
-    officeAddress: { type: String, default: 'Gulshan 2, Dhaka 1212, Bangladesh' },
-    corporateDirectLine: { type: String, default: '+880 2 988-1234 (Ext 402)' },
-    residentialAddress: { type: String, default: 'House 42, Road 11, Block D, Banani, Dhaka 1213' },
+    corporateId: { type: String, default: '' },
+    dob: { type: String, default: '' },
+    gender: { type: String, default: '' },
+    nid: { type: String, default: '' },
+    tin: { type: String, default: '' },
+    employer: { type: String, default: '' },
+    employerShort: { type: String, default: '' },
+    employerSubtitle: { type: String, default: '' },
+    corporateEmail: { type: String, default: '' },
+    employeeId: { type: String, default: '' },
+    workstation: { type: String, default: '' },
+    designation: { type: String, default: '' },
+    department: { type: String, default: '' },
+    officeAddress: { type: String, default: '' },
+    corporateDirectLine: { type: String, default: '' },
+    residentialAddress: { type: String, default: '' },
     permanentAddressMatches: { type: Boolean, default: true },
-    emergencyContactName: { type: String, default: 'Dr. Anisur Zaman' },
-    emergencyContactRelation: { type: String, default: 'Father' },
-    emergencyContactPhone: { type: String, default: '+880 1711-000000' },
-    salaryBank: { type: String, default: 'City Bank Corporate' },
-    salaryAccount: { type: String, default: '•••• 4892 (Gulshan Br.)' },
-    allowanceWallet: { type: String, default: 'bKash Corp Pocket' },
-    completionPercent: { type: Number, default: 85 }
+    emergencyContactName: { type: String, default: '' },
+    emergencyContactRelation: { type: String, default: '' },
+    emergencyContactPhone: { type: String, default: '' },
+    salaryBank: { type: String, default: '' },
+    salaryAccount: { type: String, default: '' },
+    allowanceWallet: { type: String, default: '' },
+    completionPercent: { type: Number, default: 0 }
   },
 }, { timestamps: true });
 

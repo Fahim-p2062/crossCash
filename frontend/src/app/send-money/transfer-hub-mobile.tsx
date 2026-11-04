@@ -81,11 +81,7 @@ export default function MobileTransferHub() {
 
   const getSourceBalance = (provider: string) => {
     const w = wallets.find((item) => item.provider.toLowerCase() === provider.toLowerCase());
-    if (w) return w.balance;
-    if (provider === "bKash") return 8485;
-    if (provider === "Nagad") return 1000;
-    if (provider === "Rocket") return 4000;
-    return 8485;
+    return w ? w.balance : 0;
   };
 
   const currentSourceBalance = getSourceBalance(sourceProvider);

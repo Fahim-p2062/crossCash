@@ -192,10 +192,6 @@ export default function MobileSecuritySettings() {
               {userName} • ID: {userPhone}
             </p>
           </div>
-          <span className="inline-flex items-center gap-space-2xs px-space-sm py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-md text-label-md shadow-sm">
-            <span className="material-symbols-outlined text-[14px] text-tertiary">verified_user</span>
-            Tier 3 Verified
-          </span>
         </div>
 
         {/* Bank-Grade Shield Card */}

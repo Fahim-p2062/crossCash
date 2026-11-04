@@ -24,21 +24,51 @@ export default function MobileDashboard({
   const { language, setLanguage, formatNumber } = useLanguage();
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
 
-  const totalBalance = balanceData?.totalBalance ?? 13485;
-  const userName = user?.name || "Fahim Bin Zaman";
-  const userPhone = user?.phone || "01777885053";
+  // Dynamically compute the exact sum across all connected wallets
+  const computedTotal = balanceData?.wallets && balanceData.wallets.length > 0
+    ? balanceData.wallets.reduce((acc, w) => acc + (Number(w.balance) || 0), 0)
+    : (balanceData?.totalBalance ?? 0);
+  const totalBalance = Math.round(computedTotal * 100) / 100;
+  const userName = user?.name || "User";
+  const userPhone = user?.phone || "";
+  const linkedCount = balanceData?.wallets?.length ?? 3;
 
-  // Wallet balances
-  const getWallet = (provider: string, fallback: number) => {
-    const found = balanceData?.wallets?.find(
-      (w) => w.provider.toLowerCase() === provider.toLowerCase()
-    );
-    return found ? found.balance : fallback;
+  const getProviderStyle = (provider: string) => {
+    switch (provider) {
+      case "bKash":
+        return {
+          barColor: "bg-[#E2136E]",
+          iconBg: "bg-[#E2136E]/10",
+          iconColor: "text-[#E2136E]",
+          initial: "bK",
+          tag: "MFS",
+        };
+      case "Nagad":
+        return {
+          barColor: "bg-[#F7941D]",
+          iconBg: "bg-[#F7941D]/15",
+          iconColor: "text-[#D96B00]",
+          initial: "NG",
+          tag: "MFS",
+        };
+      case "Rocket":
+        return {
+          barColor: "bg-[#8C3494]",
+          iconBg: "bg-[#8C3494]/15",
+          iconColor: "text-[#8C3494]",
+          initial: "RK",
+          tag: "DBBL",
+        };
+      default:
+        return {
+          barColor: "bg-primary-container",
+          iconBg: "bg-primary-container/10",
+          iconColor: "text-primary-container",
+          initial: "BK",
+          tag: "BANK",
+        };
+    }
   };
-
-  const bkashBal = getWallet("bKash", 8485);
-  const nagadBal = getWallet("Nagad", 1000);
-  const rocketBal = getWallet("Rocket", 4000);
 
   const displayMoney = (val: number) => {
     if (language === "bn") return `৳${formatNumber(val)}`;
@@ -63,8 +93,6 @@ export default function MobileDashboard({
           </div>
           <div className="flex items-center gap-space-xs text-on-surface-variant font-body-sm text-body-sm mt-0.5">
             <span className="font-medium tracking-wide">ID: {userPhone}</span>
-            <span className="inline-block w-1 h-1 rounded-full bg-outline-variant"></span>
-            <span className="text-tertiary font-medium">Tier 2 KYC</span>
           </div>
         </div>
 
@@ -147,7 +175,7 @@ export default function MobileDashboard({
                 Reconciled
               </span>
               <span className="font-body-sm text-body-sm text-surface-container-high/80">
-                Across 3 Linked Accounts
+                Across {linkedCount} Linked {linkedCount === 1 ? "Account" : "Accounts"}
               </span>
             </div>
           </div>
@@ -213,7 +241,7 @@ export default function MobileDashboard({
           <div className="flex items-center gap-space-xs">
             <span className="font-title-md text-title-md text-on-surface font-semibold">Connected Wallets</span>
             <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant font-label-md text-label-md font-semibold">
-              3
+              {linkedCount}
             </span>
           </div>
           <Link href="/linked-wallets" className="font-label-md text-label-md text-primary font-semibold hover:underline">
@@ -223,98 +251,66 @@ export default function MobileDashboard({
 
         {/* Horizontal Scrollable Cards on mobile, 4-col grid on desktop */}
         <div className="flex lg:grid lg:grid-cols-4 items-stretch gap-space-md overflow-x-auto pb-space-xs -mx-margin px-margin lg:mx-0 lg:px-0 no-scrollbar scroll-smooth">
-          {/* bKash Card (Primary) */}
-          <div className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#E2136E]"></div>
-            <div className="flex items-start justify-between pt-1">
-              <div className="flex items-center gap-space-sm">
-                <div className="w-10 h-10 rounded-lg bg-[#E2136E]/10 flex items-center justify-center font-title-md text-body-lg font-bold text-[#E2136E]">
-                  bK
+          {isLoading ? (
+            <>
+              <div className="flex-shrink-0 w-64 lg:w-auto h-36 rounded-xl bg-surface-container-low animate-pulse"></div>
+              <div className="flex-shrink-0 w-64 lg:w-auto h-36 rounded-xl bg-surface-container-low animate-pulse"></div>
+            </>
+          ) : balanceData?.wallets && balanceData.wallets.length > 0 ? (
+            balanceData.wallets.map((wallet, idx) => {
+              const style = getProviderStyle(wallet.provider);
+              return (
+                <div
+                  key={wallet._id || `${wallet.provider}-${idx}`}
+                  className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden"
+                >
+                  <div className={`absolute top-0 left-0 right-0 h-1.5 ${style.barColor}`}></div>
+                  <div className="flex items-start justify-between pt-1">
+                    <div className="flex items-center gap-space-sm">
+                      <div
+                        className={`w-10 h-10 rounded-lg ${style.iconBg} flex items-center justify-center font-title-md text-body-lg font-bold ${style.iconColor}`}
+                      >
+                        {style.initial}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-title-md text-title-md text-on-surface leading-tight font-semibold">
+                          {wallet.provider}
+                        </span>
+                        <span className="font-body-sm text-body-sm text-on-surface-variant font-mono">
+                          {wallet.identifier || userPhone}
+                        </span>
+                      </div>
+                    </div>
+                    {idx === 0 ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-label-md text-[10px] font-bold tracking-wider uppercase">
+                        PRIMARY
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-md text-[10px] font-semibold uppercase">
+                        {style.tag}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-end justify-between pt-2">
+                    <div className="flex flex-col">
+                      <span className="font-body-sm text-body-sm text-on-surface-variant">Available</span>
+                      <span className="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">
+                        {isBalanceHidden ? "••••••" : displayMoney(wallet.balance)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-surface-container-low px-2 py-1 rounded-full">
+                      <span className="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></span>
+                      <span className="font-label-md text-[11px] text-tertiary font-semibold">Active</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="font-title-md text-title-md text-on-surface leading-tight font-semibold">bKash</span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">{userPhone}</span>
-                </div>
-              </div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-label-md text-[10px] font-bold tracking-wider uppercase">
-                PRIMARY
-              </span>
+              );
+            })
+          ) : (
+            <div className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md border border-outline-variant/30 text-center flex flex-col items-center justify-center text-on-surface-variant text-sm">
+              <span>No wallets linked yet.</span>
             </div>
-            <div className="flex items-end justify-between pt-2">
-              <div className="flex flex-col">
-                <span className="font-body-sm text-body-sm text-on-surface-variant">Available</span>
-                <span className="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">
-                  {isBalanceHidden ? "••••••" : displayMoney(bkashBal)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-surface-container-low px-2 py-1 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></span>
-                <span className="font-label-md text-[11px] text-tertiary font-semibold">Active</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Nagad Card */}
-          <div className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#F7941D]"></div>
-            <div className="flex items-start justify-between pt-1">
-              <div className="flex items-center gap-space-sm">
-                <div className="w-10 h-10 rounded-lg bg-[#F7941D]/15 flex items-center justify-center font-title-md text-body-lg font-bold text-[#D96B00]">
-                  NG
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-title-md text-title-md text-on-surface leading-tight font-semibold">Nagad</span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">{userPhone}</span>
-                </div>
-              </div>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-md text-[10px] font-semibold uppercase">
-                MFS
-              </span>
-            </div>
-            <div className="flex items-end justify-between pt-2">
-              <div className="flex flex-col">
-                <span className="font-body-sm text-body-sm text-on-surface-variant">Available</span>
-                <span className="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">
-                  {isBalanceHidden ? "••••••" : displayMoney(nagadBal)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-surface-container-low px-2 py-1 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-tertiary-container"></span>
-                <span className="font-label-md text-[11px] text-tertiary font-semibold">Active</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Rocket Card */}
-          <div className="flex-shrink-0 w-64 lg:w-auto rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#8C3494]"></div>
-            <div className="flex items-start justify-between pt-1">
-              <div className="flex items-center gap-space-sm">
-                <div className="w-10 h-10 rounded-lg bg-[#8C3494]/15 flex items-center justify-center font-title-md text-body-lg font-bold text-[#8C3494]">
-                  RK
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-title-md text-title-md text-on-surface leading-tight font-semibold">Rocket</span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">{userPhone}</span>
-                </div>
-              </div>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-md text-[10px] font-semibold uppercase">
-                DBBL
-              </span>
-            </div>
-            <div className="flex items-end justify-between pt-2">
-              <div className="flex flex-col">
-                <span className="font-body-sm text-body-sm text-on-surface-variant">Available</span>
-                <span className="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">
-                  {isBalanceHidden ? "••••••" : displayMoney(rocketBal)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-surface-container-low px-2 py-1 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-tertiary-container"></span>
-                <span className="font-label-md text-[11px] text-tertiary font-semibold">Active</span>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Link New Card Button */}
           <Link
@@ -408,113 +404,15 @@ export default function MobileDashboard({
               );
             })
           ) : (
-            // Mock items matching design exactly when no transactions exist yet
-            <>
-              {/* Item 1: Outbound to Rakib */}
-              <div className="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-low transition-colors">
-                <div className="flex items-center gap-space-md min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-[20px] font-bold">north_east</span>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-title-md text-body-lg text-on-surface truncate font-semibold">
-                      To Rakib Hasan
-                    </span>
-                    <div className="flex items-center gap-1.5 flex-wrap text-on-surface-variant font-body-sm text-body-sm">
-                      <span className="inline-flex items-center font-medium text-primary-container">
-                        bKash → Nagad
-                      </span>
-                      <span className="text-outline-variant">•</span>
-                      <span>Oct 15, 10:32 AM</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[11px] text-outline font-label-md">Fee: ৳10.00</span>
-                      <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-[10px] font-semibold">
-                        Completed
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end flex-shrink-0 pl-space-xs">
-                  <span className="font-title-md text-title-md text-error font-bold tracking-tight">
-                    -৳1,010.00
-                  </span>
-                  <span className="font-label-md text-body-sm text-on-surface-variant font-mono">
-                    TxN #4921
-                  </span>
-                </div>
+            <div className="flex flex-col items-center justify-center p-space-lg text-center rounded-xl bg-surface-container-lowest border border-outline-variant/20 gap-2 my-1">
+              <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                <span className="material-symbols-outlined text-[24px]">receipt_long</span>
               </div>
-
-              {/* Item 2: Inbound from City Bank */}
-              <div className="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-low transition-colors">
-                <div className="flex items-center gap-space-md min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-[20px] font-bold">south_west</span>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-title-md text-body-lg text-on-surface truncate font-semibold">
-                      From City Bank
-                    </span>
-                    <div className="flex items-center gap-1.5 flex-wrap text-on-surface-variant font-body-sm text-body-sm">
-                      <span className="inline-flex items-center font-medium text-primary-container">
-                        Bank → Rocket
-                      </span>
-                      <span className="text-outline-variant">•</span>
-                      <span>Oct 15, 10:30 AM</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[11px] text-outline font-label-md">Fee: ৳0.00</span>
-                      <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-[10px] font-semibold">
-                        Completed
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end flex-shrink-0 pl-space-xs">
-                  <span className="font-title-md text-title-md text-tertiary font-bold tracking-tight">
-                    +৳4,000.00
-                  </span>
-                  <span className="font-label-md text-body-sm text-on-surface-variant font-mono">
-                    BEFTN #8812
-                  </span>
-                </div>
-              </div>
-
-              {/* Item 3: Outbound to Rakib */}
-              <div className="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-low transition-colors">
-                <div className="flex items-center gap-space-md min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-[20px] font-bold">north_east</span>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-title-md text-body-lg text-on-surface truncate font-semibold">
-                      To Rakib Hasan
-                    </span>
-                    <div className="flex items-center gap-1.5 flex-wrap text-on-surface-variant font-body-sm text-body-sm">
-                      <span className="inline-flex items-center font-medium text-primary-container">
-                        bKash → Nagad
-                      </span>
-                      <span className="text-outline-variant">•</span>
-                      <span>Oct 15, 10:25 AM</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[11px] text-outline font-label-md">Fee: ৳5.00</span>
-                      <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-[10px] font-semibold">
-                        Completed
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end flex-shrink-0 pl-space-xs">
-                  <span className="font-title-md text-title-md text-error font-bold tracking-tight">
-                    -৳505.00
-                  </span>
-                  <span className="font-label-md text-body-sm text-on-surface-variant font-mono">
-                    TxN #4919
-                  </span>
-                </div>
-              </div>
-            </>
+              <span className="font-title-md text-body-md font-semibold text-on-surface">No Transactions Yet</span>
+              <p className="font-body-sm text-body-sm text-on-surface-variant max-w-xs">
+                Your cross-wallet transfers and deposits will appear here once you start transacting.
+              </p>
+            </div>
           )}
         </div>
       </section>

@@ -11,40 +11,40 @@ export default function ProfileClient() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
 
-  // Profile data states
-  const [name, setName] = useState("Fahim Bin Zaman");
-  const [phone, setPhone] = useState("01777885053");
+  // Profile data states (Empty by default for newly registered accounts)
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string>("");
-  const [corporateId, setCorporateId] = useState("CC-CORP-885053");
-  const [dob, setDob] = useState("14 Aug 1994");
-  const [gender, setGender] = useState("Male");
-  const [nid, setNid] = useState("1994 2692 8110 0041");
-  const [tin, setTin] = useState("4821-9903-XXXX");
+  const [corporateId, setCorporateId] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
+  const [nid, setNid] = useState("");
+  const [tin, setTin] = useState("");
 
   // Corporate & MNC Employment
-  const [employer, setEmployer] = useState("Standard Chartered GBS");
-  const [employerShort, setEmployerShort] = useState("SCB");
-  const [employerSubtitle, setEmployerSubtitle] = useState("Global Business Services Ltd.");
-  const [corporateEmail, setCorporateEmail] = useState("fahim.zaman@scb.com");
-  const [employeeId, setEmployeeId] = useState("SCB-EMP-90241");
-  const [workstation, setWorkstation] = useState("Dhaka HQ");
-  const [designation, setDesignation] = useState("Senior Financial Systems Architect");
-  const [department, setDepartment] = useState("Fintech Operations & Real-time Settlements");
-  const [officeAddress, setOfficeAddress] = useState("Gulshan 2, Dhaka 1212, Bangladesh");
+  const [employer, setEmployer] = useState("");
+  const [employerShort, setEmployerShort] = useState("");
+  const [employerSubtitle, setEmployerSubtitle] = useState("");
+  const [corporateEmail, setCorporateEmail] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [workstation, setWorkstation] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [department, setDepartment] = useState("");
+  const [officeAddress, setOfficeAddress] = useState("");
 
   // Contact & Residence
-  const [corporateDirectLine, setCorporateDirectLine] = useState("+880 2 988-1234 (Ext 402)");
-  const [residentialAddress, setResidentialAddress] = useState("House 42, Road 11, Block D, Banani, Dhaka 1213");
+  const [corporateDirectLine, setCorporateDirectLine] = useState("");
+  const [residentialAddress, setResidentialAddress] = useState("");
   const [permanentAddressMatches, setPermanentAddressMatches] = useState(true);
-  const [emergencyContactName, setEmergencyContactName] = useState("Dr. Anisur Zaman");
-  const [emergencyContactRelation, setEmergencyContactRelation] = useState("Father");
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState("+880 1711-000000");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactRelation, setEmergencyContactRelation] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
 
   // Corporate Payroll & Routing
-  const [salaryBank, setSalaryBank] = useState("City Bank Corporate");
-  const [salaryAccount, setSalaryAccount] = useState("•••• 4892 (Gulshan Br.)");
-  const [allowanceWallet, setAllowanceWallet] = useState("bKash Corp Pocket");
-  const [completionPercent, setCompletionPercent] = useState(85);
+  const [salaryBank, setSalaryBank] = useState("");
+  const [salaryAccount, setSalaryAccount] = useState("");
+  const [allowanceWallet, setAllowanceWallet] = useState("");
+  const [completionPercent, setCompletionPercent] = useState(0);
 
   // UI state
   const [isLoading, setIsLoading] = useState(true);
@@ -395,20 +395,20 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
               </div>
 
               <div className="flex items-center gap-space-xs mt-1">
-                <span className="inline-flex items-center gap-1 bg-tertiary-container/10 text-tertiary-container px-2 py-0.5 rounded-full font-label-md text-label-md font-semibold">
+                <span className="inline-flex items-center gap-1 bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-full font-label-md text-label-md font-semibold">
                   <span
                     className="material-symbols-outlined text-[14px]"
                     style={{ fontVariationSettings: "'FILL' 1" }}
                   >
-                    verified
+                    {nid ? "verified" : "info"}
                   </span>
-                  Tier 3 MNC Citizen
+                  {nid ? "Verified Member" : "Standard Account"}
                 </span>
               </div>
 
               <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 flex items-center gap-1 font-mono">
                 <span>ID:</span>{" "}
-                <span className="font-semibold text-on-surface">{corporateId}</span>
+                <span className="font-semibold text-on-surface">{corporateId || (phone ? `CC-${phone.slice(-6)}` : "CC-NEW")}</span>
               </p>
             </div>
           </div>
@@ -416,24 +416,24 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
           {/* Verification Status Pills */}
           <div className="grid grid-cols-2 gap-space-xs pt-space-xs">
             <div className="bg-surface-container-low px-space-sm py-2 rounded-xl flex items-center gap-2 border border-outline-variant/20">
-              <span className="w-5 h-5 rounded-full bg-tertiary-container text-on-tertiary flex items-center justify-center text-[12px] shrink-0">
-                <span className="material-symbols-outlined text-[14px]">check</span>
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[12px] shrink-0 ${nid ? "bg-tertiary-container text-on-tertiary" : "bg-surface-container text-on-surface-variant"}`}>
+                <span className="material-symbols-outlined text-[14px]">{nid ? "check" : "priority_high"}</span>
               </span>
               <div className="flex flex-col min-w-0">
                 <span className="font-label-md text-label-md text-on-surface-variant leading-none">Smart NID</span>
-                <span className="font-label-md text-label-md text-tertiary-container font-semibold truncate">
-                  Govt. Verified
+                <span className={`font-label-md text-label-md font-semibold truncate ${nid ? "text-tertiary-container" : "text-on-surface-variant"}`}>
+                  {nid ? "Govt. Verified" : "Not Linked"}
                 </span>
               </div>
             </div>
             <div className="bg-surface-container-low px-space-sm py-2 rounded-xl flex items-center gap-2 border border-outline-variant/20">
-              <span className="w-5 h-5 rounded-full bg-primary-container text-on-primary flex items-center justify-center text-[12px] shrink-0">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[12px] shrink-0 ${salaryBank ? "bg-primary-container text-on-primary" : "bg-surface-container text-on-surface-variant"}`}>
                 <span className="material-symbols-outlined text-[14px]">corporate_fare</span>
               </span>
               <div className="flex flex-col min-w-0">
-                <span className="font-label-md text-label-md text-on-surface-variant leading-none">MNC Payroll</span>
-                <span className="font-label-md text-label-md text-primary-container font-semibold truncate">
-                  Active Channel
+                <span className="font-label-md text-label-md text-on-surface-variant leading-none">Bank Account</span>
+                <span className={`font-label-md text-label-md font-semibold truncate ${salaryBank ? "text-primary-container" : "text-on-surface-variant"}`}>
+                  {salaryBank ? "Connected" : "Not Linked"}
                 </span>
               </div>
             </div>
@@ -523,15 +523,15 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
               <div className="flex flex-col gap-1">
                 <label className="font-label-md text-label-md text-on-surface-variant font-medium">Date of Birth</label>
                 <div className="h-12 bg-surface-container-low rounded-xl px-space-sm flex items-center justify-between border border-outline-variant/20">
-                  <span className="font-body-md text-body-md text-on-surface font-mono">{dob}</span>
+                  <span className="font-body-md text-body-md text-on-surface font-mono">{dob || "Not specified"}</span>
                   <span className="material-symbols-outlined text-on-surface-variant text-[16px]">calendar_today</span>
                 </div>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="font-label-md text-label-md text-on-surface-variant font-medium">Gender</label>
                 <div className="h-12 bg-surface-container-low rounded-xl px-space-sm flex items-center justify-between border border-outline-variant/20">
-                  <span className="font-body-md text-body-md text-on-surface">{gender}</span>
-                  <span className="material-symbols-outlined text-on-surface-variant text-[16px]">male</span>
+                  <span className="font-body-md text-body-md text-on-surface">{gender || "Not specified"}</span>
+                  <span className="material-symbols-outlined text-on-surface-variant text-[16px]">person</span>
                 </div>
               </div>
             </div>
@@ -547,8 +547,12 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
                 </span>
               </div>
               <div className="h-12 bg-surface-container-low rounded-xl px-space-sm flex items-center justify-between font-mono border border-outline-variant/20">
-                <span className="font-body-md text-body-md text-on-surface tracking-wider font-semibold">{nid}</span>
-                <span className="material-symbols-outlined text-tertiary-container text-[18px]">check_circle</span>
+                <span className="font-body-md text-body-md text-on-surface tracking-wider font-semibold">{nid || "Not linked"}</span>
+                {nid ? (
+                  <span className="material-symbols-outlined text-tertiary-container text-[18px]">check_circle</span>
+                ) : (
+                  <span className="text-on-surface-variant text-xs">Pending</span>
+                )}
               </div>
             </div>
 
@@ -558,10 +562,14 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
                 Tax Identification Number (e-TIN)
               </label>
               <div className="h-12 bg-surface-container-low rounded-xl px-space-sm flex items-center justify-between font-mono border border-outline-variant/20">
-                <span className="font-body-md text-body-md text-on-surface tracking-wider">{tin}</span>
-                <span className="bg-surface-container px-2 py-0.5 rounded text-primary-container font-label-md text-label-md font-semibold">
-                  NBR Active
-                </span>
+                <span className="font-body-md text-body-md text-on-surface tracking-wider">{tin || "Not linked"}</span>
+                {tin ? (
+                  <span className="bg-surface-container px-2 py-0.5 rounded text-primary-container font-label-md text-label-md font-semibold">
+                    NBR Active
+                  </span>
+                ) : (
+                  <span className="text-on-surface-variant text-xs">Optional</span>
+                )}
               </div>
             </div>
           </div>
@@ -587,11 +595,15 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
               </label>
               <div className="p-space-sm bg-surface-container-low rounded-xl flex items-center gap-space-sm border border-outline-variant/20">
                 <div className="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold text-[14px] shadow-sm">
-                  {employerShort}
+                  {employerShort || "—"}
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="font-title-md text-title-md text-on-surface font-bold truncate">{employer}</span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant truncate">{employerSubtitle}</span>
+                  <span className="font-title-md text-title-md text-on-surface font-bold truncate">
+                    {employer || "No Employer Linked"}
+                  </span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant truncate">
+                    {employerSubtitle || "Update your employment profile to enable corporate payroll"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -604,11 +616,19 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
               <div className="h-12 bg-surface-container-low rounded-xl px-space-sm flex items-center justify-between border border-outline-variant/20">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="material-symbols-outlined text-on-surface-variant text-[18px]">mail</span>
-                  <span className="font-body-md text-body-md text-on-surface truncate font-mono">{corporateEmail}</span>
+                  <span className="font-body-md text-body-md text-on-surface truncate font-mono">
+                    {corporateEmail || "No corporate email added"}
+                  </span>
                 </div>
-                <span className="bg-tertiary-container/15 text-tertiary-container text-[11px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
-                  <span className="material-symbols-outlined text-[12px]">check</span> Domain Verified
-                </span>
+                {corporateEmail ? (
+                  <span className="bg-tertiary-container/15 text-tertiary-container text-[11px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
+                    <span className="material-symbols-outlined text-[12px]">check</span> Domain Verified
+                  </span>
+                ) : (
+                  <span className="text-on-surface-variant text-[11px] font-semibold px-2 py-0.5 rounded shrink-0">
+                    Unlinked
+                  </span>
+                )}
               </div>
             </div>
 
@@ -617,13 +637,17 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
               <div className="flex flex-col gap-1">
                 <label className="font-label-md text-label-md text-on-surface-variant font-medium">Employee ID</label>
                 <div className="h-12 bg-surface-container-low rounded-xl px-space-sm flex items-center justify-between border border-outline-variant/20">
-                  <span className="font-body-md text-body-md text-on-surface font-mono font-medium">{employeeId}</span>
+                  <span className="font-body-md text-body-md text-on-surface font-mono font-medium">
+                    {employeeId || "Not Assigned"}
+                  </span>
                 </div>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="font-label-md text-label-md text-on-surface-variant font-medium">Workstation</label>
                 <div className="h-12 bg-surface-container-low rounded-xl px-space-sm flex items-center justify-between border border-outline-variant/20">
-                  <span className="font-body-md text-body-md text-on-surface truncate">{workstation}</span>
+                  <span className="font-body-md text-body-md text-on-surface truncate">
+                    {workstation || "Not Configured"}
+                  </span>
                   <span className="material-symbols-outlined text-on-surface-variant text-[16px]">location_on</span>
                 </div>
               </div>
@@ -635,8 +659,12 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
                 Department & Designation
               </label>
               <div className="p-space-sm bg-surface-container-low rounded-xl flex flex-col border border-outline-variant/20">
-                <span className="font-title-md text-title-md text-on-surface font-semibold">{designation}</span>
-                <span className="font-body-sm text-body-sm text-on-surface-variant">{department}</span>
+                <span className="font-title-md text-title-md text-on-surface font-semibold">
+                  {designation || "Individual Account Holder"}
+                </span>
+                <span className="font-body-sm text-body-sm text-on-surface-variant">
+                  {department || "General Member"}
+                </span>
               </div>
             </div>
 
@@ -647,7 +675,9 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
               </label>
               <div className="p-space-sm bg-surface-container-low rounded-xl flex items-center gap-2 border border-outline-variant/20">
                 <span className="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0">apartment</span>
-                <span className="font-body-md text-body-md text-on-surface">{officeAddress}</span>
+                <span className="font-body-md text-body-md text-on-surface">
+                  {officeAddress || "No registered work address"}
+                </span>
               </div>
             </div>
           </div>
@@ -698,7 +728,9 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
               <div className="h-12 bg-surface-container-low rounded-xl px-space-sm flex items-center justify-between border border-outline-variant/20">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-on-surface-variant text-[18px]">deskphone</span>
-                  <span className="font-body-md text-body-md text-on-surface font-mono">{corporateDirectLine}</span>
+                  <span className="font-body-md text-body-md text-on-surface font-mono">
+                    {corporateDirectLine || "Not provided"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -710,7 +742,9 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
               </label>
               <div className="p-space-sm bg-surface-container-low rounded-xl flex items-start gap-2 border border-outline-variant/20">
                 <span className="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0 mt-0.5">home</span>
-                <span className="font-body-md text-body-md text-on-surface leading-snug">{residentialAddress}</span>
+                <span className="font-body-md text-body-md text-on-surface leading-snug">
+                  {residentialAddress || "No residential address added yet"}
+                </span>
               </div>
             </div>
 
@@ -722,7 +756,9 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
                   <span className="font-body-md text-body-md text-on-surface font-medium">
                     Permanent Address matches Residential
                   </span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">Banani, Dhaka 1213</span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant">
+                    {residentialAddress ? "Same as above" : "Not set"}
+                  </span>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -744,13 +780,13 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="font-label-md text-label-md text-on-surface-variant">
-                    Emergency Contact ({emergencyContactRelation})
+                    Emergency Contact ({emergencyContactRelation || "Not set"})
                   </span>
                   <span className="font-title-md text-title-md text-on-surface font-semibold truncate">
-                    {emergencyContactName}
+                    {emergencyContactName || "None Added"}
                   </span>
                   <span className="font-body-sm text-body-sm text-on-surface-variant font-mono">
-                    {emergencyContactPhone}
+                    {emergencyContactPhone || "Click edit to add contact"}
                   </span>
                 </div>
               </div>
@@ -786,17 +822,31 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-title-md text-title-md text-on-surface font-bold">{salaryBank}</span>
-                    <span className="bg-primary-container text-on-primary text-[10px] font-bold px-1.5 py-0.2 rounded">
-                      SALARY
+                    <span className="font-title-md text-title-md text-on-surface font-bold">
+                      {salaryBank || "No Salary Bank Linked"}
                     </span>
+                    {salaryBank && (
+                      <span className="bg-primary-container text-on-primary text-[10px] font-bold px-1.5 py-0.2 rounded">
+                        SALARY
+                      </span>
+                    )}
                   </div>
                   <span className="font-body-sm text-body-sm text-on-surface-variant font-mono">
-                    Acc: {salaryAccount}
+                    {salaryAccount ? `Acc: ${salaryAccount}` : "Click edit to link bank account"}
                   </span>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-tertiary-container text-[20px]">check_circle</span>
+              {salaryBank ? (
+                <span className="material-symbols-outlined text-tertiary-container text-[20px]">check_circle</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="text-xs text-primary font-bold hover:underline"
+                >
+                  Link
+                </button>
+              )}
             </div>
 
             {/* Corporate Allowance Pocket */}
@@ -807,17 +857,23 @@ Regulatory Tier: Tier 3 Institutional Real-time Settlement
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-title-md text-title-md text-on-surface font-bold">{allowanceWallet}</span>
-                    <span className="bg-surface-container text-on-surface-variant text-[10px] font-bold px-1.5 py-0.2 rounded">
-                      PER DIEM
+                    <span className="font-title-md text-title-md text-on-surface font-bold">
+                      {allowanceWallet || "No Allowance Pocket Linked"}
                     </span>
+                    {allowanceWallet && (
+                      <span className="bg-surface-container text-on-surface-variant text-[10px] font-bold px-1.5 py-0.2 rounded">
+                        PER DIEM
+                      </span>
+                    )}
                   </div>
                   <span className="font-body-sm text-body-sm text-on-surface-variant font-mono">
-                    Linked: +880 {phone}
+                    {phone ? `Linked: +880 ${phone}` : "Not linked"}
                   </span>
                 </div>
               </div>
-              <span className="material-symbols-outlined text-tertiary-container text-[20px]">check_circle</span>
+              {allowanceWallet && (
+                <span className="material-symbols-outlined text-tertiary-container text-[20px]">check_circle</span>
+              )}
             </div>
           </div>
         </div>

@@ -42,6 +42,21 @@ function ConfirmQRForm() {
 
   // Load wallets and pinLength
   useEffect(() => {
+    // Read synchronously from localStorage first to avoid async flash
+    try {
+      const raw = localStorage.getItem("crosscash_user");
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u.wallets && u.wallets.length > 0) {
+          setWallets(u.wallets.map((w: any) => ({ provider: w.provider, balance: w.balance })));
+          setFromWallet(u.wallets[0].provider || "bKash");
+        }
+        if (u.pinLength && u.pinLength >= 4 && u.pinLength <= 6) {
+          setPinLength(u.pinLength);
+        }
+      }
+    } catch {}
+
     if (!user?._id) return;
 
     apiRequest<BalanceResponse>(`/api/user/${user._id}/balance`)

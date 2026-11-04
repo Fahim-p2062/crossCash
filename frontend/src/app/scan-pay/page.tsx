@@ -2,20 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api";
-
-interface QRParseResponse {
-  isValid: boolean;
-  isDynamic: boolean;
-  merchantName: string;
-  merchantCity: string;
-  merchantCategoryCode: string | null;
-  currency: string;
-  amount: number | null;
-  countryCode: string;
-  provider: string;
-  merchantId: string | null;
-}
+import { parseBanglaQR, SAMPLE_BANGLA_QR } from "@/lib/qr-parser";
 
 export default function ScanPayPage() {
   const router = useRouter();
@@ -54,30 +41,23 @@ export default function ScanPayPage() {
             setStatus("processing");
             await stopScanner();
 
-            try {
-              const data = await apiRequest<QRParseResponse>("/api/qr/parse", {
-                method: "POST",
-                body: JSON.stringify({ rawQR: decodedText }),
-              });
-
-              const params = new URLSearchParams({
-                rawQR: decodedText,
-                merchantName: data.merchantName,
-                merchantCity: data.merchantCity || "",
-                provider: data.provider || "",
-                currency: data.currency || "BDT",
-                isDynamic: String(data.isDynamic),
-                ...(data.amount !== null ? { amount: String(data.amount) } : {}),
-              });
-              router.push(`/scan-pay/confirm?${params.toString()}`);
-            } catch (err: unknown) {
-              setErrorMsg(
-                err instanceof Error
-                  ? err.message
-                  : "Invalid or unrecognised QR code. Please scan a valid Bangla QR."
-              );
+            const data = parseBanglaQR(decodedText);
+            if (!data.isValid) {
+              setErrorMsg(data.error || "Invalid or unrecognised QR code. Please scan a valid Bangla QR.");
               setStatus("error");
+              return;
             }
+
+            const params = new URLSearchParams({
+              rawQR: decodedText,
+              merchantName: data.merchantName,
+              merchantCity: data.merchantCity || "",
+              provider: data.provider || "",
+              currency: data.currency || "BDT",
+              isDynamic: String(data.isDynamic),
+              ...(data.amount !== null ? { amount: String(data.amount) } : {}),
+            });
+            router.push(`/scan-pay/confirm?${params.toString()}`);
           },
           () => {} // ignore parse frame errors
         );
@@ -208,27 +188,17 @@ export default function ScanPayPage() {
           onClick={async () => {
             setStatus("processing");
             await stopScanner();
-            try {
-              // Fetch a sample dynamic QR from backend and process it
-              const samples = await apiRequest<{ static: string; dynamic: string }>("/api/qr/sample");
-              const data = await apiRequest<QRParseResponse>("/api/qr/parse", {
-                method: "POST",
-                body: JSON.stringify({ rawQR: samples.dynamic }),
-              });
-              const params = new URLSearchParams({
-                rawQR: samples.dynamic,
-                merchantName: data.merchantName,
-                merchantCity: data.merchantCity || "",
-                provider: data.provider || "",
-                currency: data.currency || "BDT",
-                isDynamic: String(data.isDynamic),
-                ...(data.amount !== null ? { amount: String(data.amount) } : {}),
-              });
-              router.push(`/scan-pay/confirm?${params.toString()}`);
-            } catch {
-              setErrorMsg("Demo QR test failed. Please try again.");
-              setStatus("error");
-            }
+            const data = parseBanglaQR(SAMPLE_BANGLA_QR.dynamic);
+            const params = new URLSearchParams({
+              rawQR: SAMPLE_BANGLA_QR.dynamic,
+              merchantName: data.merchantName,
+              merchantCity: data.merchantCity || "",
+              provider: data.provider || "",
+              currency: data.currency || "BDT",
+              isDynamic: String(data.isDynamic),
+              amount: String(data.amount || 850),
+            });
+            router.push(`/scan-pay/confirm?${params.toString()}`);
           }}
           className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/15 border border-white/20 rounded-full text-sm text-white/80 transition-colors"
         >

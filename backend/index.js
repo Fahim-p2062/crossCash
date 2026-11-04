@@ -75,6 +75,7 @@ const authRoutes = require('./routes/auth');
 const biometricRoutes = require('./routes/biometric');
 const userRoutes = require('./routes/user');
 const transactionRoutes = require('./routes/transaction');
+const qrRoutes = require('./routes/qr');
 
 // Public route: Health probe
 app.get('/api/health', (req, res) => {
@@ -90,6 +91,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 // Protected routes (require valid JWT)
 app.use('/api/user', verifyToken, userRoutes);
 app.use('/api/transactions', verifyToken, transactionRoutes);
+app.use('/api/qr', qrRoutes);
 
 // 7. Global Error Handler (Never leaks stack traces or internal messages)
 app.use((err, req, res, next) => {

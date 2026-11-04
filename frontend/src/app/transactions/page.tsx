@@ -191,7 +191,8 @@ export default function TransactionsHistory() {
               </div>
             ) : (
               filteredTransactions.map((tx, idx) => {
-                const isInbound = tx.recipientPhone === user?.phone;
+                const isQR = (tx as any).type === "qr_payment";
+                const isInbound = tx.recipientPhone === user?.phone && !isQR;
                 return (
                   <div
                     key={tx._id || idx}
@@ -200,18 +201,22 @@ export default function TransactionsHistory() {
                     <div className="flex items-center gap-3 md:gap-4 min-w-0">
                       <div
                         className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          isInbound
+                          isQR
+                            ? "bg-emerald-100 text-emerald-800"
+                            : isInbound
                             ? "bg-tertiary-fixed text-on-tertiary-fixed"
                             : "bg-error-container text-on-error-container"
                         }`}
                       >
                         <span className="material-symbols-outlined text-[20px] font-bold">
-                          {isInbound ? "south_west" : "north_east"}
+                          {isQR ? "qr_code_scanner" : isInbound ? "south_west" : "north_east"}
                         </span>
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="font-title-md text-body-lg text-on-surface truncate font-semibold">
-                          {isInbound
+                          {isQR
+                            ? `Bangla QR • ${tx.recipientName || "Merchant"}`
+                            : isInbound
                             ? `From ${tx.fromWalletProvider || "Bank"}`
                             : `To ${tx.recipientName || tx.recipientPhone}`}
                         </span>
@@ -233,6 +238,11 @@ export default function TransactionsHistory() {
                           <span className="text-[11px] text-outline font-label-md">
                             Fee: ৳{tx.fee ? tx.fee.toFixed(2) : "0.00"}
                           </span>
+                          {isQR && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-label-md text-[10px] font-bold uppercase">
+                              Bangla QR
+                            </span>
+                          )}
                           <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-[10px] font-semibold">
                             {tx.status}
                           </span>

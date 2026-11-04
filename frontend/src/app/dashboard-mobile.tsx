@@ -181,23 +181,64 @@ export default function MobileDashboard({
           </div>
 
           {/* Card Quick Action Buttons */}
-          <div className="grid grid-cols-2 gap-space-sm pt-space-xs">
+          <div className="grid grid-cols-3 gap-2 pt-space-xs">
             <button
-              className="flex items-center justify-center gap-space-xs h-11 px-space-md rounded-full bg-surface-container-lowest text-primary-container font-title-md text-body-md shadow-md active:scale-98 transition-transform font-bold"
+              className="flex items-center justify-center gap-1.5 h-11 px-2 rounded-xl bg-surface-container-lowest text-primary-container font-title-md text-xs sm:text-sm shadow-md active:scale-98 transition-transform font-bold"
               type="button"
               onClick={onOpenAddFunds}
             >
-              <span className="material-symbols-outlined text-[20px] font-bold">add</span>
-              <span>Add Money</span>
+              <span className="material-symbols-outlined text-[18px] font-bold">add</span>
+              <span>Add</span>
             </button>
             <Link
               href="/send-money"
-              className="flex items-center justify-center gap-space-xs h-11 px-space-md rounded-full bg-surface-container-lowest/15 backdrop-blur-md text-surface-container-lowest hover:bg-surface-container-lowest/25 font-title-md text-body-md active:scale-98 transition-transform font-semibold"
+              className="flex items-center justify-center gap-1.5 h-11 px-2 rounded-xl bg-surface-container-lowest/15 backdrop-blur-md text-surface-container-lowest hover:bg-surface-container-lowest/25 font-title-md text-xs sm:text-sm active:scale-98 transition-transform font-semibold"
             >
-              <span className="material-symbols-outlined text-[20px]">swap_horiz</span>
-              <span>Send / Swap</span>
+              <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
+              <span>Send</span>
+            </Link>
+            <Link
+              href="/scan-pay"
+              className="flex items-center justify-center gap-1.5 h-11 px-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-title-md text-xs sm:text-sm shadow-md active:scale-98 transition-transform font-bold"
+            >
+              <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
+              <span>Scan & Pay</span>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Bangla QR Interoperable Payment Banner */}
+      <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-950/10 via-surface-container-lowest to-surface-container-lowest p-space-md shadow-sm border border-emerald-500/20">
+        <div className="flex items-center justify-between gap-space-md">
+          <div className="flex items-center gap-space-md min-w-0">
+            <div className="relative flex-shrink-0 w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800 shadow-xs">
+              <span className="material-symbols-outlined text-[26px]">qr_code_scanner</span>
+              <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-surface-container-lowest text-[9px] font-bold">
+                ✓
+              </span>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-space-xs">
+                <span className="font-title-md text-title-md text-on-surface truncate font-semibold">
+                  Bangla QR • Pay Merchant
+                </span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-label-md text-[10px] font-bold uppercase">
+                  Zero Fee
+                </span>
+              </div>
+              <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
+                Scan any interoperable EMV merchant QR code
+              </p>
+            </div>
+          </div>
+          <Link
+            aria-label="Scan QR now"
+            href="/scan-pay"
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-md active:scale-95 transition-transform hover:bg-emerald-700"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+          </Link>
         </div>
       </section>
 

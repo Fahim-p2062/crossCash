@@ -18,6 +18,7 @@ export default function Sidebar() {
   const navItems = [
     { href: "/", label: "Dashboard", icon: "home" },
     { href: "/send-money", label: "Transfer", icon: "swap_horiz" },
+    { href: "/scan-pay", label: "Scan & Pay", icon: "qr_code_scanner" },
     { href: "/linked-wallets", label: "Wallets", icon: "account_balance_wallet" },
     { href: "/transactions", label: "Activity", icon: "receipt_long" },
     { href: "/security-settings", label: "Security", icon: "verified_user" },

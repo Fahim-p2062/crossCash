@@ -159,6 +159,7 @@ router.get('/:userId/balance', async (req, res, next) => {
     
     res.json({
       totalBalance,
+      pinLength: user.pinLength || 4,
       wallets: user.wallets
     });
   } catch (error) {

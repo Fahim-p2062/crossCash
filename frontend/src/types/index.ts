@@ -49,6 +49,7 @@ export interface AuthResponse {
 
 export interface BalanceResponse {
   totalBalance: number;
+  pinLength?: number;
   wallets: Wallet[];
 }
 

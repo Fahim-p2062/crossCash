@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiRequest, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/session";
@@ -23,9 +23,35 @@ function PinForm() {
   const fromProvider = searchParams.get("fromProvider") || "bKash";
   const amount = searchParams.get("amount") || "0";
 
-  const expectedPinLength = (user?.pinLength && user.pinLength >= 4 && user.pinLength <= 6)
-    ? user.pinLength
-    : 4;
+  const [expectedPinLength, setExpectedPinLength] = useState<number>(
+    user?.pinLength && user.pinLength >= 4 && user.pinLength <= 6 ? user.pinLength : 4
+  );
+
+  useEffect(() => {
+    // If user already has pinLength in local session, use it immediately
+    if (user?.pinLength && user.pinLength >= 4 && user.pinLength <= 6) {
+      setExpectedPinLength(user.pinLength);
+    }
+
+    // Always fetch authoritative pinLength from backend to guarantee 100% accuracy
+    if (user?.phone) {
+      apiRequest<{ pinLength: number }>(`/api/auth/pin-length/${user.phone}`, { skipAuth: true })
+        .then((data) => {
+          if (data && data.pinLength && data.pinLength >= 4 && data.pinLength <= 6) {
+            setExpectedPinLength(data.pinLength);
+            try {
+              const raw = localStorage.getItem("crosscash_user");
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                parsed.pinLength = data.pinLength;
+                localStorage.setItem("crosscash_user", JSON.stringify(parsed));
+              }
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);

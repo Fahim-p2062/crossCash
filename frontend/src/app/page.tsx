@@ -49,6 +49,16 @@ export default function Home() {
       .then(([balanceRes, txRes]) => {
         setBalanceData(balanceRes);
         setTransactions(txRes);
+        if ((balanceRes as any)?.pinLength) {
+          try {
+            const raw = localStorage.getItem("crosscash_user");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              parsed.pinLength = (balanceRes as any).pinLength;
+              localStorage.setItem("crosscash_user", JSON.stringify(parsed));
+            }
+          } catch {}
+        }
         if (balanceRes.wallets && balanceRes.wallets.length > 0) {
           const firstProv = balanceRes.wallets[0].provider;
           if (firstProv === "bKash" || firstProv === "Nagad" || firstProv === "Rocket") {
@@ -92,6 +102,16 @@ export default function Home() {
       .then(([balanceRes, txRes]) => {
         setBalanceData(balanceRes);
         setTransactions(txRes);
+        if ((balanceRes as any)?.pinLength) {
+          try {
+            const raw = localStorage.getItem("crosscash_user");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              parsed.pinLength = (balanceRes as any).pinLength;
+              localStorage.setItem("crosscash_user", JSON.stringify(parsed));
+            }
+          } catch {}
+        }
       })
       .catch((err: unknown) => {
         setError(err instanceof ApiError ? err.message : "Failed to load dashboard data. Please try again.");

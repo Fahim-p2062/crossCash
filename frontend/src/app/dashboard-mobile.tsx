@@ -383,7 +383,46 @@ export default function MobileDashboard({
         <div className="flex flex-col gap-space-xs bg-surface-container-lowest rounded-xl p-space-xs shadow-sm">
           {transactions && transactions.length > 0 ? (
             transactions.slice(0, 4).map((tx, idx) => {
-              const isInbound = tx.recipientPhone === user?.phone;
+              const isQR = (tx as any).type === "qr_payment";
+              const isSwap = (tx as any).type === "swap" || tx.recipientName?.includes("Self Swap");
+              const isInbound = tx.recipientPhone === user?.phone && !isQR && !isSwap;
+
+              // Sender details
+              const senderName = tx.senderName || (typeof tx.sender === "object" ? (tx.sender as any)?.name : null) || "User";
+              const senderPhone = tx.senderPhone || (typeof tx.sender === "object" ? (tx.sender as any)?.phone : null) || "";
+
+              // Recipient details
+              const recipientName = tx.recipientName || "Recipient";
+              const recipientPhone = tx.recipientPhone || "";
+
+              // Title label
+              let title = "";
+              if (isQR) {
+                title = `Bangla QR • ${recipientName}`;
+              } else if (isSwap) {
+                title = `Self Swap (${tx.fromWalletProvider} → ${tx.toWalletProvider})`;
+              } else if (isInbound) {
+                title = `From ${senderName}${senderPhone ? ` (${senderPhone})` : ""}`;
+              } else {
+                title = `To ${recipientName}${recipientPhone ? ` (${recipientPhone})` : ""}`;
+              }
+
+              const iconBg = isQR
+                ? "bg-emerald-100 text-emerald-800"
+                : isSwap
+                ? "bg-secondary-container text-primary-container"
+                : isInbound
+                ? "bg-tertiary-fixed text-on-tertiary-fixed"
+                : "bg-error-container text-on-error-container";
+
+              const iconName = isQR
+                ? "qr_code_scanner"
+                : isSwap
+                ? "sync_alt"
+                : isInbound
+                ? "south_west"
+                : "north_east";
+
               return (
                 <div
                   key={tx._id || idx}
@@ -391,21 +430,15 @@ export default function MobileDashboard({
                 >
                   <div className="flex items-center gap-space-md min-w-0">
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        isInbound
-                          ? "bg-tertiary-fixed text-on-tertiary-fixed"
-                          : "bg-error-container text-on-error-container"
-                      }`}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}
                     >
                       <span className="material-symbols-outlined text-[20px] font-bold">
-                        {isInbound ? "south_west" : "north_east"}
+                        {iconName}
                       </span>
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="font-title-md text-body-lg text-on-surface truncate font-semibold">
-                        {isInbound
-                          ? `From ${tx.fromWalletProvider || "Bank"}`
-                          : `To ${tx.recipientName || "Recipient"}`}
+                      <span className="font-title-md text-body-lg text-on-surface truncate font-semibold" title={title}>
+                        {title}
                       </span>
                       <div className="flex items-center gap-1.5 flex-wrap text-on-surface-variant font-body-sm text-body-sm">
                         <span className="inline-flex items-center font-medium text-primary-container">
@@ -423,6 +456,11 @@ export default function MobileDashboard({
                         <span className="text-[11px] text-outline font-label-md">
                           Fee: ৳{tx.fee ? tx.fee.toFixed(2) : "0.00"}
                         </span>
+                        {isQR && (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-label-md text-[10px] font-bold uppercase">
+                            Bangla QR
+                          </span>
+                        )}
                         <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-[10px] font-semibold">
                           Completed
                         </span>

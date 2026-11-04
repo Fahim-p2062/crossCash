@@ -107,6 +107,8 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
     // Save transaction ledger in MongoDB
     const transaction = new Transaction({
       sender: sender._id,
+      senderName: sender.name,
+      senderPhone: sender.phone,
       recipientPhone,
       recipientName: resolvedRecipientName,
       fromWalletProvider: senderWallet.provider,
@@ -114,6 +116,7 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
       amount,
       fee,
       total,
+      type: isSelfTransfer ? 'swap' : 'p2p_transfer',
       status: 'Completed'
     });
     
@@ -150,7 +153,9 @@ router.get('/:userId', async (req, res, next) => {
         { sender: user._id },
         { recipientPhone: user.phone }
       ]
-    }).sort({ createdAt: -1 });
+    })
+    .populate('sender', 'name phone')
+    .sort({ createdAt: -1 });
     
     res.json(transactions);
   } catch (error) {

@@ -55,7 +55,9 @@ export interface BalanceResponse {
 
 export interface Transaction {
   _id: string;
-  sender: string;
+  sender: string | { _id: string; name?: string; phone?: string };
+  senderName?: string;
+  senderPhone?: string;
   recipientPhone: string;
   recipientName?: string;
   fromWalletProvider: string;
@@ -63,6 +65,7 @@ export interface Transaction {
   amount: number;
   fee: number;
   total: number;
+  type?: 'p2p_transfer' | 'qr_payment' | 'add_funds' | 'swap';
   status: 'Pending' | 'Completed' | 'Failed';
   createdAt: string;
   updatedAt: string;

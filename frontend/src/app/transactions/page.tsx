@@ -192,7 +192,45 @@ export default function TransactionsHistory() {
             ) : (
               filteredTransactions.map((tx, idx) => {
                 const isQR = (tx as any).type === "qr_payment";
-                const isInbound = tx.recipientPhone === user?.phone && !isQR;
+                const isSwap = (tx as any).type === "swap" || tx.recipientName?.includes("Self Swap");
+                const isInbound = tx.recipientPhone === user?.phone && !isQR && !isSwap;
+
+                // Sender details
+                const senderName = tx.senderName || (typeof tx.sender === "object" ? (tx.sender as any)?.name : null) || "User";
+                const senderPhone = tx.senderPhone || (typeof tx.sender === "object" ? (tx.sender as any)?.phone : null) || "";
+
+                // Recipient details
+                const recipientName = tx.recipientName || "Recipient";
+                const recipientPhone = tx.recipientPhone || "";
+
+                // Title label
+                let title = "";
+                if (isQR) {
+                  title = `Bangla QR • ${recipientName}`;
+                } else if (isSwap) {
+                  title = `Self Swap (${tx.fromWalletProvider} → ${tx.toWalletProvider})`;
+                } else if (isInbound) {
+                  title = `From ${senderName}${senderPhone ? ` (${senderPhone})` : ""}`;
+                } else {
+                  title = `To ${recipientName}${recipientPhone ? ` (${recipientPhone})` : ""}`;
+                }
+
+                const iconBg = isQR
+                  ? "bg-emerald-100 text-emerald-800"
+                  : isSwap
+                  ? "bg-secondary-container text-primary-container"
+                  : isInbound
+                  ? "bg-tertiary-fixed text-on-tertiary-fixed"
+                  : "bg-error-container text-on-error-container";
+
+                const iconName = isQR
+                  ? "qr_code_scanner"
+                  : isSwap
+                  ? "sync_alt"
+                  : isInbound
+                  ? "south_west"
+                  : "north_east";
+
                 return (
                   <div
                     key={tx._id || idx}
@@ -200,25 +238,15 @@ export default function TransactionsHistory() {
                   >
                     <div className="flex items-center gap-3 md:gap-4 min-w-0">
                       <div
-                        className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          isQR
-                            ? "bg-emerald-100 text-emerald-800"
-                            : isInbound
-                            ? "bg-tertiary-fixed text-on-tertiary-fixed"
-                            : "bg-error-container text-on-error-container"
-                        }`}
+                        className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}
                       >
                         <span className="material-symbols-outlined text-[20px] font-bold">
-                          {isQR ? "qr_code_scanner" : isInbound ? "south_west" : "north_east"}
+                          {iconName}
                         </span>
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="font-title-md text-body-lg text-on-surface truncate font-semibold">
-                          {isQR
-                            ? `Bangla QR • ${tx.recipientName || "Merchant"}`
-                            : isInbound
-                            ? `From ${tx.fromWalletProvider || "Bank"}`
-                            : `To ${tx.recipientName || tx.recipientPhone}`}
+                        <span className="font-title-md text-body-lg text-on-surface truncate font-semibold" title={title}>
+                          {title}
                         </span>
                         <div className="flex items-center gap-1.5 flex-wrap text-on-surface-variant font-body-sm text-body-sm">
                           <span className="inline-flex items-center font-medium text-primary-container">

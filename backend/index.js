@@ -76,6 +76,7 @@ const biometricRoutes = require('./routes/biometric');
 const userRoutes = require('./routes/user');
 const transactionRoutes = require('./routes/transaction');
 const qrRoutes = require('./routes/qr');
+const otpRoutes = require('./routes/otp');
 
 // Public route: Health probe
 app.get('/api/health', (req, res) => {
@@ -92,6 +93,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/user', verifyToken, userRoutes);
 app.use('/api/transactions', verifyToken, transactionRoutes);
 app.use('/api/qr', qrRoutes);
+app.use('/api/otp', otpRoutes);
 
 // 7. Global Error Handler (Never leaks stack traces or internal messages)
 app.use((err, req, res, next) => {

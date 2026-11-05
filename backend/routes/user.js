@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-
+const OTP = require('../models/OTP');
 const Transaction = require('../models/Transaction');
 
 // GET /api/user/suggestions?q=... (Typeahead suggestions for recipient search)
@@ -224,6 +225,65 @@ router.post('/:userId/add-funds', async (req, res, next) => {
       totalBalance,
       wallets: user.wallets,
       transaction
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/user/change-pin
+router.post('/change-pin', async (req, res, next) => {
+  try {
+    const { newPin, otpToken, currentPin } = req.body;
+
+    if (!newPin || typeof newPin !== 'string' || !/^[0-9]{4,6}$/.test(newPin.trim())) {
+      return res.status(400).json({
+        error: 'New PIN must be 4, 5, or 6 numeric digits.',
+      });
+    }
+
+    const user = await User.findById(req.user.id).select('+pin +failedPinAttempts +lockUntil');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Verification method: Either verified OTP token OR current PIN
+    if (otpToken) {
+      const otpRecord = await OTP.findOne({
+        phone: user.phone,
+        purpose: 'pin_change',
+        verified: true,
+        token: otpToken,
+      });
+
+      if (!otpRecord) {
+        return res.status(400).json({
+          error: 'Invalid or expired OTP authorization token. Please request a new OTP.',
+        });
+      }
+
+      // Consume OTP token
+      await OTP.deleteOne({ _id: otpRecord._id });
+    } else if (currentPin) {
+      const isMatch = await bcrypt.compare(currentPin, user.pin);
+      if (!isMatch) {
+        return res.status(400).json({ error: 'Current PIN is incorrect.' });
+      }
+    } else {
+      return res.status(400).json({
+        error: 'Either current PIN or verified OTP token is required to change PIN.',
+      });
+    }
+
+    // Hash and save new PIN
+    const hashedPin = await bcrypt.hash(newPin.trim(), 10);
+    user.pin = hashedPin;
+    user.pinLength = newPin.trim().length;
+    user.failedPinAttempts = 0;
+    user.lockUntil = null;
+    await user.save();
+
+    return res.json({
+      message: 'Your PIN has been changed successfully!',
+      pinLength: user.pinLength,
     });
   } catch (error) {
     next(error);

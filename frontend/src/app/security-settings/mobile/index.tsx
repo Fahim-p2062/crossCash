@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/session";
+import { apiRequest, ApiError } from "@/lib/api";
+import SmsNotificationToast from "@/components/ui/SmsNotificationToast";
 import {
   getBiometricStatus,
   registerBiometricDevice,
@@ -42,6 +44,185 @@ export default function MobileSecuritySettings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [dataSyncEnabled, setDataSyncEnabled] = useState(false);
   const [stealthModeEnabled, setStealthModeEnabled] = useState(true);
+
+  // PIN Change via OTP state
+  const [currentPinLength, setCurrentPinLength] = useState<number>(user?.pinLength || 4);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinStep, setPinStep] = useState<"otp" | "new_pin" | "success">("otp");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const [isOtpSending, setIsOtpSending] = useState(false);
+  const [isOtpVerifying, setIsOtpVerifying] = useState(false);
+  const [isPinUpdating, setIsPinUpdating] = useState(false);
+  const [otpToken, setOtpToken] = useState("");
+  const [pinModalError, setPinModalError] = useState<string | null>(null);
+  const [demoOtp, setDemoOtp] = useState<string | null>(null);
+  const [toastSmsMessage, setToastSmsMessage] = useState<string | null>(null);
+  const [maskedPhone, setMaskedPhone] = useState("+880 18••••••");
+  const [selectedPinLength, setSelectedPinLength] = useState<4 | 5>(4);
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [showPin, setShowPin] = useState(false);
+
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (user?.pinLength) {
+      setCurrentPinLength(user.pinLength);
+      setSelectedPinLength(user.pinLength === 5 ? 5 : 4);
+    }
+  }, [user]);
+
+  // Countdown timer for PIN OTP
+  useEffect(() => {
+    if (!isPinModalOpen || pinStep !== "otp") return;
+    if (countdown <= 0) {
+      setCanResend(true);
+      return;
+    }
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown, isPinModalOpen, pinStep]);
+
+  const requestPinChangeOtp = async () => {
+    setIsOtpSending(true);
+    setPinModalError(null);
+    try {
+      const res = await apiRequest<{ message: string; phone: string; demoOtp?: string }>(
+        "/api/otp/send",
+        {
+          method: "POST",
+          body: JSON.stringify({ purpose: "pin_change" }),
+        }
+      );
+      if (res.phone) setMaskedPhone(res.phone);
+      if (res.demoOtp) {
+        setDemoOtp(res.demoOtp);
+        setToastSmsMessage(`CrossCash Security: Your PIN reset authorization OTP is ${res.demoOtp}. Valid for 3 mins.`);
+      }
+      setCountdown(60);
+      setCanResend(false);
+    } catch (err: unknown) {
+      setPinModalError(err instanceof ApiError ? err.message : "Failed to send verification code.");
+    } finally {
+      setIsOtpSending(false);
+    }
+  };
+
+  const handleOpenPinModal = () => {
+    setIsPinModalOpen(true);
+    setPinStep("otp");
+    setOtp(["", "", "", "", "", ""]);
+    setPinModalError(null);
+    setNewPin("");
+    setConfirmPin("");
+    requestPinChangeOtp();
+  };
+
+  const handleOtpDigitChange = (index: number, val: string) => {
+    const digit = val.replace(/[^0-9]/g, "").slice(-1);
+    const newOtp = [...otp];
+    newOtp[index] = digit;
+    setOtp(newOtp);
+    setPinModalError(null);
+
+    if (digit && index < 5) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleAutoFillOtp = (code: string) => {
+    const digits = code.slice(0, 6).split("");
+    const filled = [...otp];
+    digits.forEach((d, i) => {
+      if (i < 6) filled[i] = d;
+    });
+    setOtp(filled);
+    setToastSmsMessage(null);
+    if (digits.length === 6) {
+      verifyPinChangeOtp(code);
+    }
+  };
+
+  const verifyPinChangeOtp = async (codeToVerify?: string) => {
+    const fullOtp = codeToVerify || otp.join("");
+    if (fullOtp.length !== 6) {
+      setPinModalError("Please enter all 6 digits of the OTP.");
+      return;
+    }
+
+    setIsOtpVerifying(true);
+    setPinModalError(null);
+    try {
+      const res = await apiRequest<{ verified: boolean; otpToken: string }>("/api/otp/verify", {
+        method: "POST",
+        body: JSON.stringify({
+          otp: fullOtp,
+          purpose: "pin_change",
+        }),
+      });
+
+      if (res.otpToken) {
+        setOtpToken(res.otpToken);
+        setPinStep("new_pin");
+      }
+    } catch (err: unknown) {
+      setPinModalError(err instanceof ApiError ? err.message : "Invalid verification code.");
+    } finally {
+      setIsOtpVerifying(false);
+    }
+  };
+
+  const handleSubmitNewPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPin.length !== selectedPinLength) {
+      setPinModalError(`Please enter a valid ${selectedPinLength}-digit PIN.`);
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setPinModalError("PIN confirmation does not match.");
+      return;
+    }
+
+    setIsPinUpdating(true);
+    setPinModalError(null);
+    try {
+      const res = await apiRequest<{ message: string; pinLength: number }>("/api/user/change-pin", {
+        method: "POST",
+        body: JSON.stringify({
+          newPin,
+          otpToken,
+        }),
+      });
+
+      setCurrentPinLength(res.pinLength);
+      // Persist to localStorage
+      try {
+        const stored = localStorage.getItem("crosscash_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          parsed.pinLength = res.pinLength;
+          localStorage.setItem("crosscash_user", JSON.stringify(parsed));
+        }
+      } catch {}
+
+      setPinStep("success");
+      showToast("Transaction PIN updated successfully!", "verified");
+    } catch (err: unknown) {
+      setPinModalError(err instanceof ApiError ? err.message : "Failed to update PIN.");
+    } finally {
+      setIsPinUpdating(false);
+    }
+  };
 
   // Check biometric support & existing registration on mount
   useEffect(() => {
@@ -262,23 +443,22 @@ export default function MobileSecuritySettings() {
             </div>
             <button
               type="button"
-              onClick={handleChangePin}
-              className="px-space-sm py-1.5 rounded-lg bg-surface-container text-primary-container hover:bg-secondary-container transition-colors font-label-md text-label-md flex items-center gap-1 font-semibold"
+              onClick={handleOpenPinModal}
+              className="px-space-sm py-1.5 rounded-lg bg-primary-container text-white hover:opacity-90 transition-opacity font-label-md text-label-md flex items-center gap-1 font-semibold shadow-xs"
             >
-              <span className="material-symbols-outlined text-[16px]">edit</span>
-              Change
+              <span className="material-symbols-outlined text-[16px]">key</span>
+              Change PIN
             </button>
           </div>
           <div className="flex items-center justify-between bg-surface-container-low px-space-md py-space-xs rounded-lg">
-            <span className="font-body-sm text-body-sm text-on-surface-variant">Current passcode</span>
+            <span className="font-body-sm text-body-sm text-on-surface-variant">Active Passcode</span>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-outline-variant"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-outline-variant"></span>
-              <span className="ml-2 font-label-md text-label-md text-on-surface-variant">6-Digit</span>
+              {Array.from({ length: currentPinLength }).map((_, i) => (
+                <span key={i} className="w-2.5 h-2.5 rounded-full bg-primary-container animate-pulse"></span>
+              ))}
+              <span className="ml-2 font-label-md text-label-md text-primary font-bold">
+                {currentPinLength}-Digit ({currentPinLength === 5 ? "Rocket" : "bKash/Nagad"})
+              </span>
             </div>
           </div>
         </div>
@@ -541,6 +721,279 @@ export default function MobileSecuritySettings() {
           Log Out of CrossCash
         </button>
       </section>
+
+      {/* Floating SMS Notification Simulation Toast */}
+      {toastSmsMessage && (
+        <SmsNotificationToast
+          sender="CrossCash BD"
+          message={toastSmsMessage}
+          otpCode={demoOtp || undefined}
+          onAutoFill={handleAutoFillOtp}
+          onClose={() => setToastSmsMessage(null)}
+        />
+      )}
+
+      {/* Change PIN via OTP Modal */}
+      {isPinModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="w-full max-w-md bg-surface-container-lowest rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl relative flex flex-col gap-5 border border-outline-variant/30 max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in-95">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsPinModalOpen(false)}
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            {/* STEP 1: OTP Verification */}
+            {pinStep === "otp" && (
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col items-center text-center gap-2 pt-2">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[30px]">shield_person</span>
+                  </div>
+                  <h3 className="font-headline-md text-xl font-bold text-on-surface">
+                    Verify Your Identity
+                  </h3>
+                  <p className="font-body-sm text-sm text-on-surface-variant max-w-xs">
+                    For your security, a 6-digit one-time code has been sent via SMS to{" "}
+                    <strong className="text-on-surface font-semibold">{maskedPhone}</strong>
+                  </p>
+                </div>
+
+                {/* 6-box OTP Input */}
+                <div className="flex justify-center gap-2 sm:gap-2.5 my-2">
+                  {otp.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) => {
+                        otpInputRefs.current[idx] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                      className="w-11 h-13 sm:w-12 sm:h-14 rounded-xl text-center text-xl sm:text-2xl font-bold bg-surface-container-low border-2 border-outline-variant/40 focus:border-primary-container focus:bg-surface-container-lowest focus:outline-none transition-all text-on-surface shadow-xs"
+                      autoFocus={idx === 0}
+                    />
+                  ))}
+                </div>
+
+                {pinModalError && (
+                  <div className="p-3 rounded-xl bg-error-container/40 border border-error/30 text-on-error-container text-xs flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-error">error</span>
+                    <span>{pinModalError}</span>
+                  </div>
+                )}
+
+                {/* Timer & Resend */}
+                <div className="flex items-center justify-between text-xs text-on-surface-variant px-1">
+                  <span>Expires in: 3 mins</span>
+                  {canResend ? (
+                    <button
+                      type="button"
+                      onClick={requestPinChangeOtp}
+                      disabled={isOtpSending}
+                      className="text-primary-container font-semibold hover:underline flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">refresh</span>
+                      Resend Code
+                    </button>
+                  ) : (
+                    <span>Resend in {countdown}s</span>
+                  )}
+                </div>
+
+                {/* Verify Button */}
+                <button
+                  type="button"
+                  onClick={() => verifyPinChangeOtp()}
+                  disabled={otp.join("").length !== 6 || isOtpVerifying}
+                  className="w-full h-12 rounded-xl bg-primary-container text-white font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isOtpVerifying ? (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                      <span>Verifying Code...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Verify & Continue</span>
+                      <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* STEP 2: Enter New PIN */}
+            {pinStep === "new_pin" && (
+              <form onSubmit={handleSubmitNewPin} className="flex flex-col gap-5">
+                <div className="flex flex-col items-center text-center gap-2 pt-2">
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-primary-container border border-indigo-100 flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[30px]">lock_reset</span>
+                  </div>
+                  <h3 className="font-headline-md text-xl font-bold text-on-surface">
+                    Set New Transaction PIN
+                  </h3>
+                  <p className="font-body-sm text-sm text-on-surface-variant max-w-xs">
+                    Choose your preferred PIN format and enter your secret digits.
+                  </p>
+                </div>
+
+                {/* Length Selector */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-on-surface-variant">Select PIN Standard</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPinLength(4);
+                        setNewPin("");
+                        setConfirmPin("");
+                      }}
+                      className={`h-11 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-1.5 ${
+                        selectedPinLength === 4
+                          ? "bg-primary-container text-white border-primary-container shadow-xs"
+                          : "bg-surface-container-low text-on-surface-variant border-outline-variant/30 hover:bg-surface-container"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">dialpad</span>
+                      <span>4-Digit (bKash/Nagad)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPinLength(5);
+                        setNewPin("");
+                        setConfirmPin("");
+                      }}
+                      className={`h-11 rounded-xl font-semibold text-xs border transition-all flex items-center justify-center gap-1.5 ${
+                        selectedPinLength === 5
+                          ? "bg-primary-container text-white border-primary-container shadow-xs"
+                          : "bg-surface-container-low text-on-surface-variant border-outline-variant/30 hover:bg-surface-container"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">dialpad</span>
+                      <span>5-Digit (Rocket)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* New PIN Inputs */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-on-surface-variant">
+                        New {selectedPinLength}-Digit PIN
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPin(!showPin)}
+                        className="text-[11px] text-primary-container font-semibold hover:underline"
+                      >
+                        {showPin ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                    <input
+                      type={showPin ? "text" : "password"}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={selectedPinLength}
+                      value={newPin}
+                      onChange={(e) => {
+                        setNewPin(e.target.value.replace(/[^0-9]/g, ""));
+                        setPinModalError(null);
+                      }}
+                      placeholder={`Enter ${selectedPinLength} digits`}
+                      className="w-full h-12 px-4 rounded-xl bg-surface-container-low border border-outline-variant/40 text-lg font-bold tracking-widest text-on-surface focus:border-primary-container focus:bg-surface-container-lowest focus:outline-none transition-all"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-on-surface-variant">
+                      Confirm New PIN
+                    </label>
+                    <input
+                      type={showPin ? "text" : "password"}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={selectedPinLength}
+                      value={confirmPin}
+                      onChange={(e) => {
+                        setConfirmPin(e.target.value.replace(/[^0-9]/g, ""));
+                        setPinModalError(null);
+                      }}
+                      placeholder={`Re-enter ${selectedPinLength} digits`}
+                      className="w-full h-12 px-4 rounded-xl bg-surface-container-low border border-outline-variant/40 text-lg font-bold tracking-widest text-on-surface focus:border-primary-container focus:bg-surface-container-lowest focus:outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {pinModalError && (
+                  <div className="p-3 rounded-xl bg-error-container/40 border border-error/30 text-on-error-container text-xs flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-error">error</span>
+                    <span>{pinModalError}</span>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={
+                    newPin.length !== selectedPinLength ||
+                    confirmPin.length !== selectedPinLength ||
+                    isPinUpdating
+                  }
+                  className="w-full h-12 rounded-xl bg-primary-container text-white font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isPinUpdating ? (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                      <span>Updating PIN...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">verified_user</span>
+                      <span>Save & Activate PIN</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* STEP 3: Success Screen */}
+            {pinStep === "success" && (
+              <div className="flex flex-col items-center text-center gap-4 py-4">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm">
+                  <span className="material-symbols-outlined text-[36px]">check_circle</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-headline-md text-xl font-bold text-on-surface">
+                    PIN Successfully Changed!
+                  </h3>
+                  <p className="font-body-sm text-sm text-on-surface-variant max-w-xs">
+                    Your account has been secured with your new{" "}
+                    <strong className="text-emerald-700 font-bold">{selectedPinLength}-digit</strong> PIN. All upcoming transfers and logins will now require this PIN.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(false)}
+                  className="w-full h-12 rounded-xl bg-primary-container text-white font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition-all mt-2"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

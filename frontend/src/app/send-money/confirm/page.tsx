@@ -17,6 +17,8 @@ function ConfirmForm() {
   const fee = Math.round(numAmount * 0.01 * 100) / 100;
   const total = Math.round((numAmount + fee) * 100) / 100;
 
+  const isHighValue = numAmount > 5000;
+
   const handleNext = () => {
     const query = new URLSearchParams({
       phone,
@@ -25,7 +27,12 @@ function ConfirmForm() {
       fromProvider,
       amount: String(numAmount),
     });
-    router.push(`/send-money/pin?${query.toString()}`);
+
+    if (isHighValue) {
+      router.push(`/send-money/otp?${query.toString()}`);
+    } else {
+      router.push(`/send-money/pin?${query.toString()}`);
+    }
   };
 
   return (
@@ -73,12 +80,18 @@ function ConfirmForm() {
           </div>
         </div>
         
-        <div className="bg-surface-container-low p-4 rounded-xl flex items-start gap-3">
-          <span className="material-symbols-outlined text-primary mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
-            info
+        <div className={`p-4 rounded-xl flex items-start gap-3 ${isHighValue ? "bg-amber-500/10 border border-amber-500/20" : "bg-surface-container-low"}`}>
+          <span className={`material-symbols-outlined mt-0.5 ${isHighValue ? "text-amber-600" : "text-primary"}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+            {isHighValue ? "shield" : "info"}
           </span>
           <p className="font-label-sm text-on-surface-variant leading-relaxed">
-            By confirming, CrossCash will instantly deduct ৳{total.toFixed(2)} from your {fromProvider} wallet and credit ৳{numAmount.toLocaleString()} to {name}&apos;s {toProvider} wallet.
+            {isHighValue ? (
+              <>
+                <strong className="text-on-surface">2FA High-Value Security:</strong> Since this transfer exceeds ৳5,000, you will be required to verify a 6-digit SMS code before entering your PIN.
+              </>
+            ) : (
+              `By confirming, CrossCash will instantly deduct ৳${total.toFixed(2)} from your ${fromProvider} wallet and credit ৳${numAmount.toLocaleString()} to ${name}'s ${toProvider} wallet.`
+            )}
           </p>
         </div>
       </div>
@@ -86,9 +99,20 @@ function ConfirmForm() {
       <div className="mt-auto pt-4 pb-safe">
         <button
           onClick={handleNext}
-          className="w-full bg-primary text-white h-12 rounded-xl font-label-md text-label-md font-bold hover:bg-primary-container transition-colors shadow-sm"
+          className={`w-full h-12 rounded-xl font-label-md text-label-md font-bold transition-colors shadow-sm flex items-center justify-center gap-2 ${
+            isHighValue 
+              ? "bg-amber-600 hover:bg-amber-700 text-white" 
+              : "bg-primary hover:bg-primary-container text-white"
+          }`}
         >
-          Confirm & Enter PIN
+          {isHighValue ? (
+            <>
+              <span className="material-symbols-outlined text-[18px]">verified_user</span>
+              Verify 2FA OTP & Proceed
+            </>
+          ) : (
+            "Confirm & Enter PIN"
+          )}
         </button>
       </div>
     </div>

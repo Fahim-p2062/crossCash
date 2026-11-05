@@ -101,7 +101,8 @@ export default function MobileLinkedWallets() {
           barColor: "bg-[#E2136E]",
           bgGlow: "bg-[#E2136E]/10",
           textColor: "text-[#E2136E]",
-          initial: "bK",
+          borderAccent: "border-pink-200 hover:border-pink-400",
+          cardGradient: "from-pink-500/5 via-white to-transparent",
           tag: "PRIMARY MFS",
         };
       case "Nagad":
@@ -109,7 +110,8 @@ export default function MobileLinkedWallets() {
           barColor: "bg-[#F7941D]",
           bgGlow: "bg-[#F7941D]/15",
           textColor: "text-[#D96B00]",
-          initial: "NG",
+          borderAccent: "border-orange-200 hover:border-orange-400",
+          cardGradient: "from-amber-500/5 via-white to-transparent",
           tag: "POSTAL MFS",
         };
       case "Rocket":
@@ -117,15 +119,17 @@ export default function MobileLinkedWallets() {
           barColor: "bg-[#8C3494]",
           bgGlow: "bg-[#8C3494]/15",
           textColor: "text-[#8C3494]",
-          initial: "RK",
+          borderAccent: "border-purple-200 hover:border-purple-400",
+          cardGradient: "from-purple-500/5 via-white to-transparent",
           tag: "DBBL MFS",
         };
       default:
         return {
-          barColor: "bg-primary-container",
-          bgGlow: "bg-primary-container/10",
-          textColor: "text-primary-container",
-          initial: "BK",
+          barColor: "bg-blue-600",
+          bgGlow: "bg-blue-600/10",
+          textColor: "text-blue-700",
+          borderAccent: "border-blue-200 hover:border-blue-400",
+          cardGradient: "from-blue-500/5 via-white to-transparent",
           tag: "COMMERCIAL BANK",
         };
     }
@@ -159,37 +163,38 @@ export default function MobileLinkedWallets() {
         </div>
       </div>
 
-      {/* Aggregated Liquidity Bar */}
-      <div className="relative overflow-hidden rounded-xl bg-surface-container-lowest p-space-md shadow-md">
-        <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-primary-container/5 rounded-full blur-2xl pointer-events-none"></div>
-        <div className="flex flex-col gap-space-sm relative z-10">
+      {/* Aggregated Liquidity Bar with Brand Gradient & Refined Aesthetics */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 p-5 shadow-sm border border-indigo-100/80">
+        <div className="absolute -right-6 -bottom-6 w-36 h-36 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="flex flex-col gap-3 relative z-10">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-space-xs">
-              <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
                 <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
               </div>
-              <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Total Liquidity Pool
               </span>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-tertiary-container/10 text-on-tertiary-container font-label-md text-label-md font-semibold">
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-xs font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               {wallets.length} {wallets.length === 1 ? "Rail" : "Rails"} Active
             </span>
           </div>
 
           <div className="flex items-baseline gap-2">
-            <span className="font-currency-display text-currency-display text-on-surface tracking-tight">
+            <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
               {allHidden ? "••••••••" : formatMoney(displayTotal)}
             </span>
-            <span className="font-body-sm text-body-sm text-on-surface-variant font-medium">BDT</span>
+            <span className="text-xs font-bold text-slate-500">BDT</span>
           </div>
-          <p className="font-body-sm text-body-sm text-on-surface-variant">
-            Aggregated across <strong className="text-on-surface font-semibold">{wallets.length} connected account{wallets.length === 1 ? "" : "s"}</strong>
+          <p className="text-xs text-slate-500">
+            Aggregated across <strong className="text-slate-800 font-semibold">{wallets.length} connected account{wallets.length === 1 ? "" : "s"}</strong>
           </p>
 
           {/* Breakdown bar */}
-          <div className="w-full flex flex-col gap-1.5 pt-1">
-            <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden flex">
+          <div className="w-full flex flex-col gap-2 pt-1">
+            <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
               {displayTotal > 0 ? (
                 wallets.map((w, i) => {
                   const cfg = getProviderConfig(w.provider);
@@ -204,15 +209,15 @@ export default function MobileLinkedWallets() {
                   );
                 })
               ) : (
-                <div className="h-full bg-surface-container-high w-full" title="Zero Liquidity"></div>
+                <div className="h-full bg-slate-200 w-full" title="Zero Liquidity"></div>
               )}
             </div>
-            <div className="flex items-center justify-between font-label-md text-label-md text-on-surface-variant text-[11px] flex-wrap gap-2">
+            <div className="flex items-center justify-between text-xs text-slate-600 flex-wrap gap-2 pt-0.5">
               {wallets.map((w, i) => {
                 const cfg = getProviderConfig(w.provider);
                 return (
-                  <span key={w._id || i} className="flex items-center gap-1">
-                    <span className={`w-2 h-2 rounded-full ${cfg.barColor} inline-block`}></span> {w.provider} {formatMoney(w.balance)}
+                  <span key={w._id || i} className="flex items-center gap-1.5 font-medium">
+                    <span className={`w-2.5 h-2.5 rounded-full ${cfg.barColor} inline-block shadow-xs`}></span> {w.provider} {formatMoney(w.balance)}
                   </span>
                 );
               })}
@@ -228,9 +233,9 @@ export default function MobileLinkedWallets() {
             <span className="material-symbols-outlined text-[20px]">bolt</span>
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-title-md text-title-md text-on-surface truncate">Default Routing</span>
+            <span className="font-title-md text-title-md text-on-surface truncate">Default Send Wallet</span>
             <span className="font-body-sm text-body-sm text-on-surface-variant truncate">
-              Primary source: {wallets[0]?.provider || "bKash"}
+              Auto-routed via {wallets[0]?.provider || "bKash"} Personal
             </span>
           </div>
         </div>
@@ -263,7 +268,7 @@ export default function MobileLinkedWallets() {
             return (
               <div
                 key={wallet._id || `${wallet.provider}-${index}`}
-                className="rounded-xl bg-surface-container-lowest p-space-md shadow-md flex flex-col gap-space-md relative overflow-hidden"
+                className={`rounded-2xl bg-gradient-to-b ${config.cardGradient} bg-surface-container-lowest p-space-md shadow-sm hover:shadow-md transition-all border ${config.borderAccent} flex flex-col gap-space-md relative overflow-hidden`}
               >
                 <div className={`absolute top-0 left-0 right-0 h-1.5 ${config.barColor}`}></div>
                 <div className="flex items-start justify-between pt-1">
@@ -271,20 +276,20 @@ export default function MobileLinkedWallets() {
                     <WalletLogo provider={wallet.provider} size="lg" />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-space-xs flex-wrap">
-                        <h3 className="font-title-md text-title-md text-on-surface">{wallet.provider}</h3>
+                        <h3 className="font-title-md text-title-md text-on-surface font-bold">{wallet.provider}</h3>
                         {index === 0 && (
-                          <span className="px-2 py-0.5 rounded-full bg-primary-container text-on-primary font-label-md text-[10px] font-bold uppercase tracking-wider">
-                            PRIMARY
+                          <span className="px-2 py-0.5 rounded-full bg-primary-container text-white font-label-md text-[10px] font-bold uppercase tracking-wider">
+                            PRIMARY WALLET
                           </span>
                         )}
                       </div>
-                      <span className="font-body-sm text-body-sm text-on-surface-variant">
+                      <span className="font-body-sm text-body-sm text-on-surface-variant font-mono">
                         Personal Account • {wallet.identifier || phone}
                       </span>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-md text-label-md font-semibold flex items-center gap-1 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-tertiary-container animate-pulse"></span>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-xs font-semibold flex items-center gap-1.5 shrink-0 border border-emerald-200">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     Active
                   </span>
                 </div>

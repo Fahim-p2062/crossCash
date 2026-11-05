@@ -64,3 +64,4 @@ export default function WalletLogo({ provider, className = "", size = "md" }: Wa
     </div>
   );
 }
+

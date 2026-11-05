@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
+const OTP = require('../models/OTP');
 const { validateBody, transferSchema } = require('../middleware/validation');
 
 // POST /api/transactions/transfer
@@ -14,13 +15,41 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
       toWalletProvider, 
       amount,
       recipientName,
-      pin
+      pin,
+      otpToken
     } = req.body;
 
     // Derive sender strictly from authenticated token
     const senderId = req.user.id;
     const sender = await User.findById(senderId).select('+pin +failedPinAttempts +lockUntil');
     if (!sender) return res.status(404).json({ error: 'Sender not found' });
+
+    // High-value transfer 2FA enforcement (> ৳5,000)
+    if (amount > 5000) {
+      if (!otpToken) {
+        return res.status(428).json({
+          error: 'Transfers exceeding ৳5,000 require 2FA OTP verification.',
+          requiresOtp: true,
+        });
+      }
+
+      const otpRecord = await OTP.findOne({
+        phone: sender.phone,
+        purpose: 'high_value_transfer',
+        verified: true,
+        token: otpToken,
+      });
+
+      if (!otpRecord) {
+        return res.status(403).json({
+          error: 'Invalid or expired 2FA OTP authorization token. Please verify OTP again.',
+          requiresOtp: true,
+        });
+      }
+
+      // Token consumed upon transfer initiation
+      await OTP.deleteOne({ _id: otpRecord._id });
+    }
 
     // Verify PIN if provided
     if (pin) {
@@ -70,10 +99,19 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
     const cleanRecipientPhone = recipientPhone.replace(/[^0-9]/g, '');
     const cleanSenderPhone = sender.phone.replace(/[^0-9]/g, '');
     const isSelfTransfer = (cleanSenderPhone === cleanRecipientPhone);
+    const recipientSuffix = cleanRecipientPhone.slice(-10);
 
     let recipient = isSelfTransfer
       ? sender
-      : await User.findOne({ phone: cleanRecipientPhone });
+      : await User.findOne({
+          $or: [
+            { phone: cleanRecipientPhone },
+            { phone: `0${recipientSuffix}` },
+            { phone: `+880${recipientSuffix}` },
+            { phone: `880${recipientSuffix}` },
+            { phone: new RegExp(recipientSuffix + '$') }
+          ]
+        });
 
     if (!recipient) {
       return res.status(400).json({
@@ -104,12 +142,12 @@ router.post('/transfer', validateBody(transferSchema), async (req, res, next) =>
       await recipient.save();
     }
 
-    // Save transaction ledger in MongoDB
+    // Save transaction ledger in MongoDB with full sender & recipient metadata
     const transaction = new Transaction({
       sender: sender._id,
       senderName: sender.name,
       senderPhone: sender.phone,
-      recipientPhone,
+      recipientPhone: recipient.phone || cleanRecipientPhone,
       recipientName: resolvedRecipientName,
       fromWalletProvider: senderWallet.provider,
       toWalletProvider,
@@ -147,17 +185,38 @@ router.get('/:userId', async (req, res, next) => {
     const user = await User.findById(req.params.userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     
-    // Find transactions where the user is either the sender or the recipient (by phone)
+    const cleanUserPhone = (user.phone || '').replace(/[^0-9]/g, '');
+    const phoneSuffix = cleanUserPhone.slice(-10);
+
+    // Find transactions where the user is either the sender or the recipient (by id or phone variants)
     const transactions = await Transaction.find({
       $or: [
         { sender: user._id },
-        { recipientPhone: user.phone }
+        { recipientPhone: user.phone },
+        { recipientPhone: cleanUserPhone },
+        ...(phoneSuffix ? [
+          { recipientPhone: new RegExp(phoneSuffix + '$') },
+          { senderPhone: new RegExp(phoneSuffix + '$') }
+        ] : [])
       ]
     })
     .populate('sender', 'name phone')
     .sort({ createdAt: -1 });
+
+    // Enrich every transaction with sender and recipient metadata
+    const enriched = transactions.map(tx => {
+      const doc = tx.toObject ? tx.toObject() : tx;
+      const populatedSender = doc.sender && typeof doc.sender === 'object' ? doc.sender : null;
+      return {
+        ...doc,
+        senderName: doc.senderName || (populatedSender ? populatedSender.name : 'CrossCash User'),
+        senderPhone: doc.senderPhone || (populatedSender ? populatedSender.phone : ''),
+        recipientName: doc.recipientName || 'CrossCash Recipient',
+        recipientPhone: doc.recipientPhone || ''
+      };
+    });
     
-    res.json(transactions);
+    res.json(enriched);
   } catch (error) {
     next(error);
   }

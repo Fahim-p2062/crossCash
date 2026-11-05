@@ -398,37 +398,45 @@ export default function MobileDashboard({
         <div className="flex flex-col gap-space-xs bg-surface-container-lowest rounded-xl p-space-xs shadow-sm">
           {transactions && transactions.length > 0 ? (
             transactions.slice(0, 4).map((tx, idx) => {
+              const cleanUserPhone = (user?.phone || "").replace(/[^0-9]/g, "");
+              const cleanRecipientPhone = (tx.recipientPhone || "").replace(/[^0-9]/g, "");
+              const cleanSenderPhone = (tx.senderPhone || (typeof tx.sender === "object" ? (tx.sender as any)?.phone : "") || "").replace(/[^0-9]/g, "");
+
+              const userSuffix = cleanUserPhone.slice(-10);
+              const recSuffix = cleanRecipientPhone.slice(-10);
+              const sndSuffix = cleanSenderPhone.slice(-10);
+
               const isQR = (tx as any).type === "qr_payment";
               const isSwap = (tx as any).type === "swap" || tx.recipientName?.includes("Self Swap");
-              const isInbound = tx.recipientPhone === user?.phone && !isQR && !isSwap;
+              const isInbound = Boolean(userSuffix && recSuffix && userSuffix === recSuffix && userSuffix !== sndSuffix && !isQR && !isSwap);
 
-              // Sender details
-              const senderName = tx.senderName || (typeof tx.sender === "object" ? (tx.sender as any)?.name : null) || "User";
-              const senderPhone = tx.senderPhone || (typeof tx.sender === "object" ? (tx.sender as any)?.phone : null) || "";
-
-              // Recipient details
-              const recipientName = tx.recipientName || "Recipient";
-              const recipientPhone = tx.recipientPhone || "";
+              // Counterpart names & phones
+              const counterpartName = isInbound
+                ? (tx.senderName || (typeof tx.sender === "object" ? (tx.sender as any)?.name : null) || "Tahmid")
+                : (tx.recipientName || "Recipient");
+              const counterpartPhone = isInbound
+                ? (tx.senderPhone || (typeof tx.sender === "object" ? (tx.sender as any)?.phone : null) || tx.recipientPhone || "")
+                : (tx.recipientPhone || "");
 
               // Title label
               let title = "";
               if (isQR) {
-                title = `Bangla QR • ${recipientName}`;
+                title = `Bangla QR • ${counterpartName}`;
               } else if (isSwap) {
                 title = `Self Swap (${tx.fromWalletProvider} → ${tx.toWalletProvider})`;
               } else if (isInbound) {
-                title = `From ${senderName}${senderPhone ? ` (${senderPhone})` : ""}`;
+                title = `Received from ${counterpartName}`;
               } else {
-                title = `To ${recipientName}${recipientPhone ? ` (${recipientPhone})` : ""}`;
+                title = `Sent to ${counterpartName}`;
               }
 
               const iconBg = isQR
                 ? "bg-emerald-100 text-emerald-800"
                 : isSwap
-                ? "bg-secondary-container text-primary-container"
+                ? "bg-indigo-100 text-indigo-700"
                 : isInbound
-                ? "bg-tertiary-fixed text-on-tertiary-fixed"
-                : "bg-error-container text-on-error-container";
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-rose-100 text-rose-700";
 
               const iconName = isQR
                 ? "qr_code_scanner"
@@ -441,9 +449,9 @@ export default function MobileDashboard({
               return (
                 <div
                   key={tx._id || idx}
-                  className="flex items-center justify-between p-space-sm rounded-lg hover:bg-surface-container-low transition-colors"
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-surface-container-low transition-colors"
                 >
-                  <div className="flex items-center gap-space-md min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}
                     >
@@ -452,14 +460,33 @@ export default function MobileDashboard({
                       </span>
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="font-title-md text-body-lg text-on-surface truncate font-semibold" title={title}>
-                        {title}
-                      </span>
-                      <div className="flex items-center gap-1.5 flex-wrap text-on-surface-variant font-body-sm text-body-sm">
-                        <span className="inline-flex items-center font-medium text-primary-container">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-title-md text-sm sm:text-base text-on-surface truncate font-bold" title={title}>
+                          {title}
+                        </span>
+                        {isInbound && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 font-label-md text-[10px] font-bold">
+                            Received
+                          </span>
+                        )}
+                        {!isInbound && !isQR && !isSwap && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700 font-label-md text-[10px] font-semibold">
+                            Sent
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap text-on-surface-variant font-body-sm text-xs mt-0.5">
+                        {counterpartPhone && (
+                          <span className="font-mono text-primary font-semibold flex items-center gap-0.5">
+                            <span className="material-symbols-outlined text-[13px]">phone_iphone</span>
+                            {counterpartPhone}
+                          </span>
+                        )}
+                        {counterpartPhone && <span className="text-slate-300">•</span>}
+                        <span className="inline-flex items-center font-medium text-slate-700">
                           {tx.fromWalletProvider} → {tx.toWalletProvider}
                         </span>
-                        <span className="text-outline-variant">•</span>
+                        <span className="text-slate-300">•</span>
                         <span>
                           {new Date(tx.createdAt || Date.now()).toLocaleDateString("en-US", {
                             month: "short",
@@ -468,7 +495,7 @@ export default function MobileDashboard({
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[11px] text-outline font-label-md">
+                        <span className="text-[11px] text-slate-500 font-label-md">
                           Fee: ৳{tx.fee ? tx.fee.toFixed(2) : "0.00"}
                         </span>
                         {isQR && (
@@ -476,21 +503,21 @@ export default function MobileDashboard({
                             Bangla QR
                           </span>
                         )}
-                        <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-[10px] font-semibold">
+                        <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-label-md text-[10px] font-semibold">
                           Completed
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end flex-shrink-0 pl-space-xs">
+                  <div className="flex flex-col items-end flex-shrink-0 pl-2">
                     <span
-                      className={`font-title-md text-title-md font-bold tracking-tight ${
-                        isInbound ? "text-tertiary" : "text-error"
+                      className={`font-title-md text-sm sm:text-base font-extrabold tracking-tight ${
+                        isInbound ? "text-emerald-600" : "text-slate-900"
                       }`}
                     >
                       {isInbound ? `+${displayMoney(tx.amount)}` : `-${displayMoney(tx.total)}`}
                     </span>
-                    <span className="font-label-md text-body-sm text-on-surface-variant font-mono">
+                    <span className="font-label-md text-xs text-on-surface-variant font-mono">
                       TxN #{tx._id ? tx._id.slice(-4) : 4920 + idx}
                     </span>
                   </div>

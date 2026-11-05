@@ -22,6 +22,14 @@ function PinForm() {
   const toProvider = searchParams.get("toProvider") || "Nagad";
   const fromProvider = searchParams.get("fromProvider") || "bKash";
   const amount = searchParams.get("amount") || "0";
+  const otpToken = searchParams.get("otpToken") || "";
+
+  // Enforce 2FA: If transfer exceeds ৳5,000 and user hasn't verified OTP, redirect to OTP screen
+  useEffect(() => {
+    if (Number(amount) > 5000 && !otpToken) {
+      router.replace(`/send-money/otp?${searchParams.toString()}`);
+    }
+  }, [amount, otpToken, router, searchParams]);
 
   // Read pinLength immediately from localStorage (synchronous) to avoid
   // the race condition where useAuth resolves asynchronously and the
@@ -107,6 +115,7 @@ function PinForm() {
           toWalletProvider: toProvider,
           amount: Number(amount),
           pin,
+          ...(otpToken ? { otpToken } : {}),
         }),
       });
 
@@ -144,6 +153,7 @@ function PinForm() {
           fromWalletProvider: fromProvider,
           toWalletProvider: toProvider,
           amount: Number(amount),
+          ...(otpToken ? { otpToken } : {}),
         }),
       });
 
